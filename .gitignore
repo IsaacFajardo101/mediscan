@@ -1,0 +1,13 @@
+# AI Context & Configs
+.copilotignore
+endpoints.md
+
+# Local Environment & Database initialization
+01-schema.sql
+docker-compose.yml
+
+# Python Cache
+__pycache__/
+back-end/app/__pycache__/
+back-end/app/api/responses
+*.pyc

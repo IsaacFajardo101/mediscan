@@ -1,2 +1,9 @@
-# App entrypoint & middleware configuration
-# (Chua)
+"""Primary FastAPI application entry point."""
+
+from fastapi import FastAPI
+
+from api.router import router
+
+
+app = FastAPI()
+app.include_router(router, prefix="/api")
