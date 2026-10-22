@@ -81,16 +81,23 @@ export default function SideMenu() {
           </View>
 
           {/* Profile card */}
-          <View style={styles.profileCard}>
-            {/* Ang need dito is yung avatar image */}
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={26} color={Colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>Maria Batumbakal</Text>
-              <Text style={styles.email}>mariabatumbakal@email.com</Text>
-            </View>
+          <Pressable
+            style={({ pressed }) => [styles.profileCard, pressed && { backgroundColor: Colors.primarySoft }]}
+            onPress={() => {
+                closeMenu();
+                router.navigate('/profile' as any);
+           }}
+          >
+           {/* TODO: replace with the real avatar image once Person 1/2's avatar assets are merged */}
+           <View style={styles.avatar}>
+            <Ionicons name="person" size={26} color={Colors.primary} />
           </View>
+          <View style={{ flex: 1 }}>
+                <Text style={styles.name}>Maria Batumbakal</Text>
+                <Text style={styles.email}>mariabatumbakal@email.com</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.text} />
+          </Pressable>
 
           {/* Menu items: each one opens its own screen */}
           <View style={styles.list}>

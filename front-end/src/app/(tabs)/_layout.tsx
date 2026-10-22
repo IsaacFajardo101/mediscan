@@ -60,6 +60,7 @@ export default function TabsLayout() {
       {/* Burger menu screens (hidden from the bottom bar) */}
       <Tabs.Screen name="settings" options={hidden('Settings')} />
       <Tabs.Screen name="terms" options={hidden('Terms & Medical Disclaimer')} />
+      <Tabs.Screen name="profile" options={hidden('Profile')} />
 
       {/* Settings screens (hidden from the bottom bar) */}
       <Tabs.Screen name="appearance" options={hidden('Appearance')} />

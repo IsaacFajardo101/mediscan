@@ -8,9 +8,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
 
-// =====================================================================
-// STORAGE: device only, never sent to the backend (not in the API schema)
-// =====================================================================
 interface HealthInfoData {
   allergies: string;
   conditions: string;
@@ -47,9 +44,6 @@ async function saveHealthInfo(info: HealthInfoData): Promise<boolean> {
   }
 }
 
-// =====================================================================
-// FORM FIELD
-// =====================================================================
 function Field({
   label, value, onChangeText, placeholder, keyboardType,
 }: {
@@ -74,9 +68,6 @@ function Field({
   );
 }
 
-// =====================================================================
-// HEALTH INFORMATION BOTTOM SHEET. Use as <HealthInfo visible onClose />
-// =====================================================================
 export default function HealthInfo({
   visible, onClose,
 }: {
@@ -100,7 +91,6 @@ export default function HealthInfo({
     };
   }, [visible]);
 
-  // Lift the sheet above the keyboard so the typed text stays visible
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -158,25 +148,25 @@ export default function HealthInfo({
               label="Allergies"
               value={form.allergies}
               onChangeText={set('allergies')}
-              placeholder="e.g. Penicillin"
+              placeholder="e.g. Peanuts, Penicillin"
             />
             <Field
               label="Conditions"
               value={form.conditions}
               onChangeText={set('conditions')}
-              placeholder="e.g. Hypertension, Asthma"
+              placeholder="e.g. Diabetes, Asthma"
             />
             <Field
               label="Emergency Contact Name"
               value={form.emergencyContactName}
               onChangeText={set('emergencyContactName')}
-              placeholder="e.g. Jose Batumbakal"
+              placeholder="Name of contact"
             />
             <Field
               label="Emergency Contact Number"
               value={form.emergencyContactNumber}
               onChangeText={set('emergencyContactNumber')}
-              placeholder="e.g. 0917 123 4567"
+              placeholder="Contact number"
               keyboardType="phone-pad"
             />
           </View>
