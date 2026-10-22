@@ -3,10 +3,14 @@
 from datetime import date
 
 from fastapi import APIRouter, Header, HTTPException, Path, status
+from fastapi import Depends
 from pydantic import BaseModel, ConfigDict, Field
+
+from api.v1.auth import require_router_access
 
 
 router = APIRouter()
+router.dependencies.append(Depends(require_router_access))
 
 
 class MedicineProfile(BaseModel):
