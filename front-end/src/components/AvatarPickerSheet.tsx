@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AVATARS } from '@/constants/avatars';
+import { AVATAR_MAP } from '@/constants/avatars';
 import { Colors, Radius, Spacing } from '@/constants/display';
 import ProfileAvatar from './ProfileAvatar';
+const AVATAR_IDS = Object.keys(AVATAR_MAP).map(Number); // [1, 2, ... 12]
 
 type Props = {
   visible: boolean;
@@ -37,16 +38,16 @@ export default function AvatarPickerSheet({ visible, selected, onClose, onSave }
           <Text style={styles.subtitle}>Pick one that fits this profile.</Text>
 
           <View style={styles.grid}>
-            {AVATARS.map((a) => (
-              <Pressable
-                key={a.id}
-                onPress={() => setPick(a.id)}
-                style={[styles.cell, pick === a.id && styles.cellOn]}
-                accessibilityLabel={`Avatar ${a.id}`}
-              >
-                <ProfileAvatar icon={a.id} size={56} />
-              </Pressable>
-            ))}
+            {AVATAR_IDS.map((id) => (
+            <Pressable
+              key={id}
+              onPress={() => setPick(id)}
+              style={[styles.cell, pick === id && styles.cellOn]}
+              accessibilityLabel={`Avatar ${id}`}
+            >
+              <ProfileAvatar icon={id} size={56} />
+            </Pressable>
+          ))}
           </View>
 
           <View style={styles.row}>
