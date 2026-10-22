@@ -3,7 +3,8 @@ import AppHeader from '@/components/AppHeader';
 import ReminderIcon from '@/components/ReminderIcon';
 import { Colors } from '@/constants/display';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { MockAuth } from '@/mock/mockAuth';
+import { Redirect, Tabs } from 'expo-router';
 
 // ito yung tab bar layout na ginagamit sa buong app. It defines the bottom bar tabs, their icons, and the header for each screen.
 const icons = {
@@ -30,6 +31,8 @@ const hidden = (title: string) => ({
 });
 
 export default function TabsLayout() {
+  // START SCREEN: hangga't walang naka-login + napiling profile, Log In muna (walang tabs/icons).
+  if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;
   return (
     <Tabs
       backBehavior="history"
@@ -60,6 +63,7 @@ export default function TabsLayout() {
       {/* Burger menu screens (hidden from the bottom bar) */}
       <Tabs.Screen name="settings" options={hidden('Settings')} />
       <Tabs.Screen name="terms" options={hidden('Terms & Medical Disclaimer')} />
+      <Tabs.Screen name="profile" options={hidden('Profile')} />
 
       {/* Settings screens (hidden from the bottom bar) */}
       <Tabs.Screen name="appearance" options={hidden('Appearance')} />

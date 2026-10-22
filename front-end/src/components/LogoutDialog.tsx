@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, BackHandler, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { MockAuth } from '@/mock/mockAuth';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
 import { useMenu } from './MenuContext';
 
@@ -38,8 +39,8 @@ export default function LogoutDialog() {
 
   const confirmLogout = () => {
     closeLogout();
-    // need here is to clear the user session and navigate to the login screen. This is a placeholder for the actual logout logic.
-    router.replace('/login' as any);
+    MockAuth.logout(); // clear the (mock) session
+    router.replace('/login');
   };
 
   return (

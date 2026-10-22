@@ -41,16 +41,20 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {/* Profile card */}
-      <View style={styles.profileCard}>
-        {/* ang need dito is yung avatar */}
+      <Pressable
+        style={({ pressed }) => [styles.profileCard, pressed && { backgroundColor: Colors.primarySoft }]}
+        onPress={() => router.navigate('/profile' as any)}
+      >
+       {/* ang need dito is yung avatar */}
         <View style={styles.avatar}>
           <Ionicons name="person" size={30} color={Colors.primary} />
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.name}>Maria Batumbakal</Text>
           <Text style={styles.email}>mariabatumbakal@email.com</Text>
         </View>
-      </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.text} />
+      </Pressable>
 
       {SECTIONS.map((s) => (
         <View key={s.title}>
