@@ -26,18 +26,19 @@ export default function RootLayout() {
               options={{ headerShown: true, header: () => <AppHeader title="Add Medicine" back /> }}
             />
 
-            {/* Sign-in flow (no header, no bottom bar) */}
-            <Stack.Screen name="login" />
-            <Stack.Screen name="signup" />
-            <Stack.Screen name="verify-code" />
-            <Stack.Screen name="choose-profile" />
+          {/* Sign-in flow (no header, no bottom bar) */}
+          <Stack.Screen name="login" />
+          <Stack.Screen name="signup" />
+          <Stack.Screen name="verify-code" />
+          <Stack.Screen name="choose-profile" />
+          <Stack.Screen name="create-profile" />
 
-            {/* Bottom sheets */}
-            <Stack.Screen
-              name="vault-filters"
-              options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
-            />
-          </Stack>
+          {/* Bottom sheets: slide up over the screen behind them */}
+          <Stack.Screen
+            name="vault-filters"
+            options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
+          />
+        </Stack>
 
           {/* Popups that sit on top of everything */}
           <SideMenu />
