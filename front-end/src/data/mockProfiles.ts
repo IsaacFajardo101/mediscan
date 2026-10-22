@@ -13,14 +13,14 @@ export const MOCK_FETCH_PROFILES: FetchProfileResponse = {
         profile_icon: 3,
         profile_fullname: "Jane",
         profile_birthdate: "2004-11-26",
-        profile_relationship: "Self"
+        profile_display_name: "Self"
       },
       {
         profile_id: 2,
         profile_icon: 1,
         profile_fullname: "Jan Doe",
         profile_birthdate: "2015-08-22",
-        profile_relationship: "Child"
+        profile_display_name: "Child"
       }
     ]
   }

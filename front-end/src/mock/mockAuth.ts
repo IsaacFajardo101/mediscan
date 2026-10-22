@@ -18,7 +18,7 @@ import fetchProfilesResponse from './json/fetch-profiles.response.json';
 import addProfileResponse from './json/add-profile.response.json';
 
 // ---- Shapes (same as the Mockdata JSON) ----
-// CHANGE: profile_relationship -> profile_display_name (display name na lagi)
+// CHANGE: profile_display_name -> profile_display_name (display name na lagi)
 export type Profile = {
   profile_id: number;
   profile_icon: number;

@@ -25,7 +25,7 @@ export default function ProfileDetailScreen({ route, navigation }: any) {
           <Ionicons name="person" size={40} color="#2D6A4F" />
         </View>
         <Text style={styles.profileName}>{profile.profile_fullname}</Text>
-        <Text style={styles.subtext}>{profile.profile_relationship} • {profile.profile_birthdate}</Text>
+        <Text style={styles.subtext}>{profile.profile_display_name} • {profile.profile_birthdate}</Text>
 
         <TouchableOpacity
           style={styles.editBtn}

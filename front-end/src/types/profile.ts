@@ -4,7 +4,7 @@ export interface Profile {
   profile_icon: number; // Integer (1 to 12)
   profile_fullname: string;
   profile_birthdate: string;
-  profile_relationship: string; // "Self" | "Mom" | "Child" | etc.
+  profile_display_name: string; // nickname shown everywhere, e.g. "Me", "Mama", "Jan"
 }
 
 // Request Payload: Downloads/Mockdata/Profiles/Request/Add Profile.json
@@ -12,7 +12,7 @@ export interface AddProfileRequest {
   profile_icon: number;
   profile_fullname: string;
   profile_birthdate: string;
-  profile_relationship: string;
+  profile_display_name: string;
 }
 
 // Request Payload: Downloads/Mockdata/Profiles/Request/Edit Profile.json
@@ -20,7 +20,7 @@ export interface EditProfileRequest {
   profile_icon?: number;
   profile_fullname?: string;
   profile_birthdate?: string;
-  profile_relationship?: string;
+  profile_display_name?: string;
 }
 
 // Response: Downloads/Mockdata/Profiles/Response/Fetch Profile.json

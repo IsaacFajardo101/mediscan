@@ -32,7 +32,7 @@ export default function FamilyProfilesTab() {
       <View style={styles.info}>
         <Text style={styles.name}>{item.profile_fullname}</Text>
         <Text style={styles.relationship}>
-          {item.profile_relationship} • Born {item.profile_birthdate}
+          {item.profile_display_name} • Born {item.profile_birthdate}
         </Text>
       </View>
 

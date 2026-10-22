@@ -11,7 +11,7 @@ export default function AddEditProfileModal({ route, navigation }: any) {
   const [iconId, setIconId] = useState<number>(profile?.profile_icon || 5);
   const [fullname, setFullname] = useState(profile?.profile_fullname || '');
   const [birthdate, setBirthdate] = useState(profile?.profile_birthdate || '');
-  const [relationship, setRelationship] = useState(profile?.profile_relationship || '');
+  const [relationship, setRelationship] = useState(profile?.profile_display_name || '');
   const [showPicker, setShowPicker] = useState(false);
 
   const avatarIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -28,7 +28,7 @@ export default function AddEditProfileModal({ route, navigation }: any) {
         profile_icon: iconId,
         profile_fullname: fullname.trim(),
         profile_birthdate: birthdate.trim(),
-        profile_relationship: relationship.trim(),
+        profile_display_name: relationship.trim(),
       });
     } else {
       // Sends Edit Profile.json payload
@@ -36,7 +36,7 @@ export default function AddEditProfileModal({ route, navigation }: any) {
         profile_icon: iconId,
         profile_fullname: fullname.trim(),
         profile_birthdate: birthdate.trim(),
-        profile_relationship: relationship.trim(),
+        profile_display_name: relationship.trim(),
       });
     }
     navigation.goBack();

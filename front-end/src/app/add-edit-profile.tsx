@@ -34,7 +34,7 @@ export default function AddEditProfileScreen() {
 
   // Form State
   const [fullname, setFullname] = useState('');
-  const [relationship, setRelationship] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [iconId, setIconId] = useState(1);
   const [showPicker, setShowPicker] = useState(false);
@@ -42,7 +42,7 @@ export default function AddEditProfileScreen() {
   useEffect(() => {
     if (isEdit && existingProfile) {
       setFullname(existingProfile.profile_fullname);
-      setRelationship(existingProfile.profile_relationship);
+      setDisplayName(existingProfile.profile_display_name);
       setBirthdate(existingProfile.profile_birthdate);
       setIconId(existingProfile.profile_icon || 1);
     }
@@ -53,15 +53,15 @@ export default function AddEditProfileScreen() {
       Alert.alert('Required', 'Please enter a full name.');
       return;
     }
-    if (!relationship.trim()) {
-      Alert.alert('Required', 'Please enter a relationship or nickname.');
+   if (!displayName.trim()) {
+      Alert.alert('Required', 'Please enter a nickname / display name.');
       return;
-    }
+}
 
     if (isEdit && existingProfile) {
       await updateProfile(existingProfile.profile_id, {
         profile_fullname: fullname.trim(),
-        profile_relationship: relationship.trim(),
+        profile_display_name: displayName.trim(),
         profile_birthdate: birthdate.trim() || '2000-01-01',
         profile_icon: iconId,
       });
@@ -69,7 +69,7 @@ export default function AddEditProfileScreen() {
       await addProfile({
         profile_icon: iconId,
         profile_fullname: fullname.trim(),
-        profile_relationship: relationship.trim(),
+        profile_display_name: displayName.trim(),
         profile_birthdate: birthdate.trim() || '2000-01-01',
       });
     }
@@ -129,10 +129,10 @@ export default function AddEditProfileScreen() {
             <Text style={styles.label}>Relationship</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter relationship (e.g. Me, Mama, Papa)"
+              placeholder="e.g. Me, Mama, Papa"
               placeholderTextColor="#A0AEC0"
-              value={relationship}
-              onChangeText={setRelationship}
+              value={displayName}
+              onChangeText={setDisplayName}
             />
 
             <Text style={styles.label}>Date of Birth</Text>

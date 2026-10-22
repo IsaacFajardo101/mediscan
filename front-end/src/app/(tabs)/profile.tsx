@@ -20,7 +20,7 @@ const MOCK_ACCOUNT = {
     profile_icon: 3,
     profile_fullname: 'Jane',
     profile_birthdate: '2004-02-26', // the mock file has "2004-26-2004" (invalid), fixed here
-    profile_relationship: 'Self', // CHANGES page says this becomes profile_displayname
+    profile_display_name: 'Self', // CHANGES page says this becomes profile_displayname
   },
 };
 

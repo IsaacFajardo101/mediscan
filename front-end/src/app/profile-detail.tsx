@@ -103,7 +103,7 @@ export default function ProfileDetailScreen() {
           </View>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{profile.profile_fullname}</Text>
-            <Text style={styles.userRel}>{profile.profile_relationship}</Text>
+            <Text style={styles.userRel}>{profile.profile_display_name}</Text>
           </View>
           <TouchableOpacity style={styles.editBtnOutline} onPress={handleEdit}>
             <Text style={styles.editBtnOutlineText}>Edit</Text>
