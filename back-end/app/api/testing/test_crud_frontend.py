@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 APP_DIRECTORY = Path(__file__).resolve().parents[2]
@@ -15,11 +16,27 @@ if str(APP_DIRECTORY) not in sys.path:
 
 from crud.crud_user import delete_account
 from crud.crud_medicine import delete_fda_medicine
+from api.v1.auth import require_session
 from main import app
 
 
+async def _test_session():
+    return {
+        "account_id": "crud-test-account",
+        "email": "crud-test@example.test",
+        "token_hash": "crud-test-token-hash",
+    }
+
+
+@pytest.fixture(autouse=True)
+def authenticated_crud_tester():
+    app.dependency_overrides[require_session] = _test_session
+    yield
+    app.dependency_overrides.pop(require_session, None)
+
+
 client = TestClient(app)
-BASE = "/api/dev/crud-tester"
+BASE = "/api/v1/dev/crud-tester"
 UNIQUE = uuid4().hex
 EMAIL = f"frontend-{UNIQUE}@example.test"
 UPDATED_EMAIL = f"frontend-updated-{UNIQUE}@example.test"

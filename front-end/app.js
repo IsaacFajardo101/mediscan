@@ -71,6 +71,17 @@ const submitButton = document.querySelector("#submit-button");
 const responseOutput = document.querySelector("#response-output");
 const responseStatus = document.querySelector("#response-status");
 const apiStatus = document.querySelector("#api-status");
+const accessTokenInput = document.querySelector("#access-token-input");
+
+accessTokenInput.value = sessionStorage.getItem("mediscan_access_token") || "";
+accessTokenInput.addEventListener("input", () => {
+  sessionStorage.setItem("mediscan_access_token", accessTokenInput.value.trim());
+});
+
+function authHeaders() {
+  const token = accessTokenInput.value.trim();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 function selectedOperation() {
   return operationDefinitions[resourceSelect.value][operationSelect.value];
@@ -92,7 +103,7 @@ function updateSample() {
   const selected = selectedOperation();
   operationHelp.textContent = selected.help;
   argumentsInput.value = JSON.stringify(selected.sample, null, 2);
-  endpointLabel.textContent = `POST /api/dev/crud-tester/${resourceSelect.value}/${operationSelect.value}`;
+  endpointLabel.textContent = `POST /api/v1/dev/crud-tester/${resourceSelect.value}/${operationSelect.value}`;
 }
 
 for (const name of Object.keys(operationDefinitions)) {
@@ -115,7 +126,9 @@ document.querySelector("#format-button").addEventListener("click", () => {
 
 async function checkApi() {
   try {
-    const response = await fetch("/api/dev/crud-tester/operations");
+    const response = await fetch("/api/v1/dev/crud-tester/operations", {
+      headers: authHeaders(),
+    });
     if (response.ok) {
       apiStatus.textContent = "API ready";
       apiStatus.classList.add("ready");
@@ -143,7 +156,7 @@ submitButton.addEventListener("click", async () => {
     return;
   }
 
-  const endpoint = `/api/dev/crud-tester/${resourceSelect.value}/${operationSelect.value}`;
+  const endpoint = `/api/v1/dev/crud-tester/${resourceSelect.value}/${operationSelect.value}`;
   endpointLabel.textContent = `POST ${endpoint}`;
   submitButton.disabled = true;
   responseStatus.textContent = "Running…";
@@ -153,7 +166,10 @@ submitButton.addEventListener("click", async () => {
   try {
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
       body: JSON.stringify(argumentsObject),
     });
     const result = await response.json();

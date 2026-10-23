@@ -10,7 +10,7 @@ from api.v1.crud_tester import router as crud_tester_router
 
 
 app = FastAPI()
-app.include_router(router, prefix="/api")
+app.include_router(router, prefix="/api/v1")
 app.include_router(crud_tester_router)
 
 REPOSITORY_DIRECTORY = Path(__file__).resolve().parents[2]

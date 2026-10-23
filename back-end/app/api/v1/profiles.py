@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Header, HTTPException, Path, status
+from fastapi import APIRouter, HTTPException, Path, status
 from fastapi import Depends
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -79,15 +79,6 @@ class ProfileDeleteResponse(BaseModel):
     message: str
 
 
-def _require_authorization(authorization: str | None) -> None:
-    if not authorization or not authorization.strip():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized. Please log in to access this resource.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
 def _mock_profile(profile_id: int = 1) -> Profile:
     return Profile(
         profile_id=profile_id,
@@ -100,9 +91,7 @@ def _mock_profile(profile_id: int = 1) -> Profile:
 
 @router.get("/", response_model=ProfilesResponse, status_code=status.HTTP_200_OK)
 async def get_profiles(
-    authorization: str | None = Header(default=None),
 ) -> ProfilesResponse:
-    _require_authorization(authorization)
     return ProfilesResponse(
         success=True,
         code=status.HTTP_200_OK,
@@ -122,9 +111,7 @@ async def get_profiles(
 )
 async def create_profile(
     payload: ProfileCreate,
-    authorization: str | None = Header(default=None),
 ) -> ProfileResponse:
-    _require_authorization(authorization)
     return ProfileResponse(
         success=True,
         code=status.HTTP_201_CREATED,
@@ -141,9 +128,7 @@ async def create_profile(
 async def replace_profile(
     payload: ProfileUpdate,
     profile_id: int = Path(ge=1),
-    authorization: str | None = Header(default=None),
 ) -> ProfileResponse:
-    _require_authorization(authorization)
     return ProfileResponse(
         success=True,
         code=status.HTTP_200_OK,
@@ -160,9 +145,7 @@ async def replace_profile(
 async def patch_profile(
     payload: ProfilePatch,
     profile_id: int = Path(ge=1),
-    authorization: str | None = Header(default=None),
 ) -> ProfileResponse:
-    _require_authorization(authorization)
     profile = _mock_profile(profile_id)
     return ProfileResponse(
         success=True,
@@ -179,9 +162,7 @@ async def patch_profile(
 )
 async def delete_profile(
     profile_id: int = Path(ge=1),
-    authorization: str | None = Header(default=None),
 ) -> ProfileDeleteResponse:
-    _require_authorization(authorization)
     return ProfileDeleteResponse(
         success=True,
         code=status.HTTP_200_OK,

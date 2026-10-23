@@ -100,11 +100,15 @@ def close_pool() -> None:
 
 import os
 from collections.abc import AsyncIterator
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 def _database_url() -> str | None:
+    environment_file = Path(__file__).resolve().parents[3] / ".env"
+    load_dotenv(dotenv_path=environment_file)
     url = os.getenv("DATABASE_URL")
     if not url:
         return None

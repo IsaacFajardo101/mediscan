@@ -21,7 +21,8 @@ from uuid import uuid4
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Header, Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,6 +36,11 @@ _password_hasher = PasswordHasher()
 _dummy_password_hash = _password_hasher.hash("mediscan-invalid-login-dummy")
 _rate_buckets: dict[str, deque[float]] = {}
 _bearer_token_pattern = re.compile(r"^[A-Za-z0-9_-]{43}$")
+_bearer_scheme = HTTPBearer(
+    bearerFormat="session-token",
+    description="Paste only the access_token returned by POST /api/v1/auth/login.",
+    auto_error=False,
+)
 
 
 class AuthHeader(BaseModel):
@@ -440,23 +446,16 @@ async def _login_with_session(
                 detail="Invalid email or password.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        active = await db.execute(
+        await db.execute(
             text(
                 """
-                SELECT token_id
-                FROM session_tokens
+                DELETE FROM session_tokens
                 WHERE account_id = CAST(:account_id AS UUID)
                   AND token_expires_at > now()
-                ORDER BY token_created_at DESC
                 """
             ),
             {"account_id": account_id},
         )
-        for row in active.mappings().all()[4:]:
-            await db.execute(
-                text("DELETE FROM session_tokens WHERE token_id = :token_id"),
-                {"token_id": row["token_id"]},
-            )
         await db.execute(
             text(
                 """
@@ -563,6 +562,17 @@ async def register(
     if account_id is not None and not await send_verification_code(
         email, code, verification_ttl
     ):
+        async with session.begin():
+            await session.execute(
+                text(
+                    """
+                    DELETE FROM accounts
+                    WHERE account_id = CAST(:account_id AS UUID)
+                      AND account_is_verified = FALSE
+                    """
+                ),
+                {"account_id": account_id},
+            )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to send verification email. Please try again later.",
@@ -809,16 +819,25 @@ async def resend_code(
 
 
 async def require_session(
-    authorization: str | None = Header(default=None),
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer_scheme),
+    authorization: str | None = Header(default=None, include_in_schema=False),
     db: AsyncSession | None = Depends(get_db),
 ) -> dict[str, str]:
     """Resolve a valid bearer token to its active account identity."""
-    if not authorization:
+    if not isinstance(credentials, HTTPAuthorizationCredentials):
+        credentials = None
+    if credentials is None and authorization:
+        scheme, separator, legacy_token = authorization.partition(" ")
+        if separator:
+            credentials = HTTPAuthorizationCredentials(
+                scheme=scheme,
+                credentials=legacy_token,
+            )
+    if credentials is None:
         raise _invalid_bearer()
-    scheme, separator, token = authorization.partition(" ")
+    token = credentials.credentials
     if (
-        not separator
-        or scheme.lower() != "bearer"
+        credentials.scheme.lower() != "bearer"
         or not _bearer_token_pattern.fullmatch(token)
     ):
         raise _invalid_bearer()

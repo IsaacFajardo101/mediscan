@@ -49,6 +49,12 @@
           </label>
         </div>
 
+        <label for="access-token-input">
+          <span>Access token</span>
+          <input id="access-token-input" type="password" autocomplete="off" placeholder="Paste access_token from POST /api/v1/auth/login">
+        </label>
+        <p class="field-help">Use the access_token from login without the word <code>Bearer</code>. It is sent as a bearer token automatically.</p>
+
         <div class="request-title">
           <label for="arguments-input">JSON arguments</label>
           <button class="text-button" id="format-button" type="button">Format JSON</button>
@@ -57,7 +63,7 @@
         <textarea id="arguments-input" spellcheck="false" aria-label="JSON arguments"></textarea>
 
         <div class="actions">
-          <span class="endpoint" id="endpoint-label">POST /api/dev/crud-tester/…</span>
+          <span class="endpoint" id="endpoint-label">POST /api/v1/dev/crud-tester/…</span>
           <button id="submit-button" type="button"><span>Run operation</span><span aria-hidden="true">→</span></button>
         </div>
       </section>
