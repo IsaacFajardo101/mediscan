@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f7f5">
+    <title>MediScan CRUD Tester</title>
+    <link rel="stylesheet" href="/crud-tester/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="MediScan CRUD Tester home">
+          <span class="brand-mark" aria-hidden="true">+</span>
+          <span>MediScan <span class="brand-light">/ CRUD lab</span></span>
+        </a>
+        <span class="local-badge"><span></span> Local development tool</span>
+      </header>
+
+      <section class="intro">
+        <p class="eyebrow">DATABASE WORKBENCH</p>
+        <h1>Test your CRUD operations.</h1>
+        <p class="intro-copy">Run the real database functions directly and inspect their results. Choose a table, select an operation, and submit its JSON arguments.</p>
+      </section>
+
+      <section class="notice" id="setup-notice">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <p><strong>Local-only test mode.</strong> Start the API with <code>ENABLE_CRUD_TEST_API=true</code> in your environment, then open this page at <code>http://127.0.0.1:8000/crud-tester/</code>.</p>
+        <span class="api-status" id="api-status">Checking API…</span>
+      </section>
+
+      <section class="workbench">
+        <div class="workbench-heading">
+          <div>
+            <p class="eyebrow">REQUEST</p>
+            <h2>CRUD operation</h2>
+          </div>
+          <span class="method-pill">POST</span>
+        </div>
+
+        <div class="fields-row">
+          <label>
+            <span>Table</span>
+            <select id="resource-select"></select>
+          </label>
+          <label>
+            <span>Operation</span>
+            <select id="operation-select"></select>
+          </label>
+        </div>
+
+        <div class="request-title">
+          <label for="arguments-input">JSON arguments</label>
+          <button class="text-button" id="format-button" type="button">Format JSON</button>
+        </div>
+        <p class="field-help" id="operation-help">Arguments are passed to the selected CRUD function.</p>
+        <textarea id="arguments-input" spellcheck="false" aria-label="JSON arguments"></textarea>
+
+        <div class="actions">
+          <span class="endpoint" id="endpoint-label">POST /api/dev/crud-tester/…</span>
+          <button id="submit-button" type="button"><span>Run operation</span><span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+
+      <section class="response-panel">
+        <div class="response-heading">
+          <div>
+            <p class="eyebrow">RESULT</p>
+            <h2>Response</h2>
+          </div>
+          <span class="response-status" id="response-status">Waiting for a request</span>
+        </div>
+        <pre id="response-output" aria-live="polite">The response will appear here.</pre>
+      </section>
+
+      <footer>
+        <span>Built for local CRUD testing</span>
+        <span>Changes are written to your configured database.</span>
+      </footer>
+    </main>
+    <script src="/crud-tester/app.js" defer></script>
+  </body>
+</html>
