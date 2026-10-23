@@ -126,10 +126,10 @@ export default function AddEditProfileScreen() {
               onChangeText={setFullname}
             />
 
-            <Text style={styles.label}>Relationship</Text>
+            <Text style={styles.label}>Nickname</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Me, Mama, Papa"
+              placeholder="Enter nickname (e.g. Me, Mama, Papa)"
               placeholderTextColor="#A0AEC0"
               value={displayName}
               onChangeText={setDisplayName}
