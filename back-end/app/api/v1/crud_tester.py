@@ -8,8 +8,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Body, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 
+from api.v1.auth import require_session
 from crud.crud_medicine import (
     create_fda_medicine,
     create_medication_log,
@@ -60,7 +61,8 @@ from crud.crud_user import (
 )
 
 
-router = APIRouter(prefix="/api/dev/crud-tester", tags=["CRUD tester"])
+router = APIRouter(prefix="/api/v1/dev/crud-tester", tags=["CRUD tester"])
+router.dependencies.append(Depends(require_session))
 _REPOSITORY_DIRECTORY = Path(__file__).resolve().parents[4]
 _ENVIRONMENT_FILE = _REPOSITORY_DIRECTORY / ".env"
 
@@ -169,7 +171,9 @@ def _convert_json_values(values: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("/operations")
-def list_operations(request: Request) -> dict[str, list[str]]:
+def list_operations(
+    request: Request,
+) -> dict[str, list[str]]:
     """Return the allowed tester operations without exposing sensitive login reads."""
     _require_local_test_mode(request)
     return {resource: sorted(operations) for resource, operations in _OPERATIONS.items()}

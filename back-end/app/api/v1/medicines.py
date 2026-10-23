@@ -2,11 +2,15 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Header, HTTPException, Path, status
+from fastapi import APIRouter, HTTPException, Path, status
+from fastapi import Depends
 from pydantic import BaseModel, ConfigDict, Field
+
+from api.v1.auth import require_router_access
 
 
 router = APIRouter()
+router.dependencies.append(Depends(require_router_access))
 
 
 class MedicineProfile(BaseModel):
@@ -75,15 +79,6 @@ class MedicineProfileDeleteResponse(BaseModel):
     message: str
 
 
-def _require_authorization(authorization: str | None) -> None:
-    if not authorization or not authorization.strip():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized. Please log in to access this resource.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
 def _mock_profile(profile_id: int = 1) -> MedicineProfile:
     return MedicineProfile(
         profile_id=profile_id,
@@ -96,9 +91,7 @@ def _mock_profile(profile_id: int = 1) -> MedicineProfile:
 
 @router.get("/", response_model=MedicineProfilesResponse, status_code=status.HTTP_200_OK)
 async def get_medicine_profiles(
-    authorization: str | None = Header(default=None),
 ) -> MedicineProfilesResponse:
-    _require_authorization(authorization)
     return MedicineProfilesResponse(
         success=True,
         code=status.HTTP_200_OK,
@@ -118,9 +111,7 @@ async def get_medicine_profiles(
 )
 async def create_medicine_profile(
     payload: MedicineProfileCreate,
-    authorization: str | None = Header(default=None),
 ) -> MedicineProfileResponse:
-    _require_authorization(authorization)
     return MedicineProfileResponse(
         success=True,
         code=status.HTTP_201_CREATED,
@@ -137,9 +128,7 @@ async def create_medicine_profile(
 async def replace_medicine_profile(
     payload: MedicineProfileUpdate,
     profile_id: int = Path(ge=1),
-    authorization: str | None = Header(default=None),
 ) -> MedicineProfileResponse:
-    _require_authorization(authorization)
     return MedicineProfileResponse(
         success=True,
         code=status.HTTP_200_OK,
@@ -156,9 +145,7 @@ async def replace_medicine_profile(
 async def patch_medicine_profile(
     payload: MedicineProfilePatch,
     profile_id: int = Path(ge=1),
-    authorization: str | None = Header(default=None),
 ) -> MedicineProfileResponse:
-    _require_authorization(authorization)
     profile = _mock_profile(profile_id)
     return MedicineProfileResponse(
         success=True,
@@ -175,9 +162,7 @@ async def patch_medicine_profile(
 )
 async def delete_medicine_profile(
     profile_id: int = Path(ge=1),
-    authorization: str | None = Header(default=None),
 ) -> MedicineProfileDeleteResponse:
-    _require_authorization(authorization)
     return MedicineProfileDeleteResponse(
         success=True,
         code=status.HTTP_200_OK,

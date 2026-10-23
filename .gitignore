@@ -3,7 +3,6 @@
 endpoints.md
 
 # Local Environment & Database initialization
-01-schema.sql
 docker-compose.yml
 .env
 .env.*
