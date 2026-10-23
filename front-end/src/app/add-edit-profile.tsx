@@ -48,20 +48,19 @@ export default function AddEditProfileScreen() {
     }
   }, [isEdit, existingProfile]);
 
-  const handleSave = async () => {
+ const handleSave = async () => {
     if (!fullname.trim()) {
       Alert.alert('Required', 'Please enter a full name.');
       return;
     }
-   if (!displayName.trim()) {
-      Alert.alert('Required', 'Please enter a nickname / display name.');
-      return;
-}
+
+    // Fallback to full name if nickname is left blank
+    const finalDisplayName = displayName.trim() || fullname.trim();
 
     if (isEdit && existingProfile) {
       await updateProfile(existingProfile.profile_id, {
         profile_fullname: fullname.trim(),
-        profile_display_name: displayName.trim(),
+        profile_display_name: finalDisplayName,
         profile_birthdate: birthdate.trim() || '2000-01-01',
         profile_icon: iconId,
       });
@@ -69,14 +68,14 @@ export default function AddEditProfileScreen() {
       await addProfile({
         profile_icon: iconId,
         profile_fullname: fullname.trim(),
-        profile_display_name: displayName.trim(),
+        profile_display_name: finalDisplayName,
         profile_birthdate: birthdate.trim() || '2000-01-01',
       });
     }
 
     router.back();
   };
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -126,10 +125,10 @@ export default function AddEditProfileScreen() {
               onChangeText={setFullname}
             />
 
-            <Text style={styles.label}>Nickname</Text>
+            <Text style={styles.label}>Nickname / Display Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter nickname (e.g. Me, Mama, Papa)"
+              placeholder="e.g. Me, Mama, Papa (Optional)"
               placeholderTextColor="#A0AEC0"
               value={displayName}
               onChangeText={setDisplayName}
