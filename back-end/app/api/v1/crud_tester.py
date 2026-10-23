@@ -216,4 +216,22 @@ def run_operation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
         ) from error
+
+    if resource == "accounts" and operation in {
+        "get_by_id",
+        "get_by_email",
+        "update",
+        "mark_verified",
+        "delete",
+    } and result in (None, False):
+        message = (
+            "Email not found."
+            if operation == "mark_verified"
+            else "Account not found."
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
+
     return {"result": result}
