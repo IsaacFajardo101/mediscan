@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import MedicineAddedModal from '@/components/MedicineAddedModal';
 import MedicineInfoCard from '@/components/MedicineInfoCard';
 import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Spacing, Type } from '@/constants/display';
-import { isScanState, mockScanResults } from '@/data/mockScanResults';
+import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const CategoryText = '#938B8B';
@@ -23,8 +24,14 @@ export default function ResultScreen() {
   // Needs Verification: at most one possible match is selected. Tapping the selected one again deselects it.
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // TODO: actually save the medicine to the vault. For now it only opens the Vault screen.
-  const goToVault = () => router.navigate('/vault');
+  // TODO: actually save the medicine to the vault. For now Save to Vault only shows the Medicine Added overlay.
+  const [addedOpen, setAddedOpen] = useState(false);
+  const savedName =
+    result.status === 'verified' ? result.medicine.name : findPossibleMatch(selectedId ?? undefined)?.name ?? '';
+  const goToVault = () => {
+    setAddedOpen(false);
+    router.navigate('/vault');
+  };
 
   return (
     <View style={styles.screen}>
@@ -78,9 +85,16 @@ export default function ResultScreen() {
         status={result.status}
         hasSelection={selectedId !== null}
         onRedoScan={() => router.replace('/camera')}
-        onSave={goToVault}
+        onSave={() => setAddedOpen(true)}
         onEdit={() => router.push({ pathname: '/edit-medicine', params: { id: selectedId } })}
         // TODO: onViewDetails -> medicine details screen
+      />
+
+      <MedicineAddedModal
+        visible={addedOpen}
+        medicineName={savedName}
+        onViewVault={goToVault}
+        onClose={() => setAddedOpen(false)}
       />
     </View>
   );

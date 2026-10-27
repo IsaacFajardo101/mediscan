@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MedicineAddedModal from '@/components/MedicineAddedModal';
 import { Assets } from '@/constants/assets';
 import { Colors } from '@/constants/display';
 
@@ -51,6 +52,7 @@ export default function ManualEntryScreen() {
   const insets = useSafeAreaInsets();
   const [medicineName, setMedicineName] = useState('');
   const [expiry, setExpiry] = useState('');
+  const [addedOpen, setAddedOpen] = useState(false);
 
   // TODO: fill these from the medicine picked in the search results.
   const selected = { genericName: '', brandName: '', strength: '', form: '', manufacturer: '' };
@@ -123,14 +125,24 @@ export default function ManualEntryScreen() {
       </View>
 
       {/* Actions */}
-      {/* TODO: save the entry to the vault */}
-      <Pressable style={styles.saveButton} accessibilityRole="button">
+      {/* TODO: actually save the entry to the vault. For now it only shows the Medicine Added overlay. */}
+      <Pressable style={styles.saveButton} onPress={() => setAddedOpen(true)} accessibilityRole="button">
         <Image source={Assets.icons.bookmark} style={styles.bookmarkIcon} contentFit="contain" />
         <Text style={styles.saveText}>Save to Vault</Text>
       </Pressable>
       <Pressable style={styles.cancelButton} onPress={() => router.back()} accessibilityRole="button">
         <Text style={styles.cancelText}>Cancel</Text>
       </Pressable>
+
+      <MedicineAddedModal
+        visible={addedOpen}
+        medicineName={medicineName}
+        onViewVault={() => {
+          setAddedOpen(false);
+          router.navigate('/vault');
+        }}
+        onClose={() => setAddedOpen(false)}
+      />
     </ScrollView>
   );
 }

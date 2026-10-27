@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MedicineAddedModal from '@/components/MedicineAddedModal';
+import QuitEditingModal from '@/components/QuitEditingModal';
 import { FormColors, FormField, InputBox } from '@/components/FormField';
 import PossibleMatchCard from '@/components/PossibleMatchCard';
 import { Assets } from '@/constants/assets';
@@ -18,6 +20,7 @@ const FORMS = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Drops'];
 // returns to Scan Result) comes from AppHeader via app/_layout.tsx.
 export default function EditMedicineScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const match = findPossibleMatch(id);
@@ -28,8 +31,40 @@ export default function EditMedicineScreen() {
   const [strength, setStrength] = useState(match?.strength ?? '');
   const [formOpen, setFormOpen] = useState(false);
 
-  // TODO: actually save the medicine to the vault. For now it only opens the Vault screen.
-  const onSave = () => router.navigate('/vault');
+  const [addedOpen, setAddedOpen] = useState(false);
+  const [quitOpen, setQuitOpen] = useState(false);
+
+  // Leaving the screen (header back arrow, Android back, swipe back) asks "Leave page?" first.
+  // `pendingLeave` holds the blocked navigation action until the user taps Yes. `allowLeave` lets
+  // navigation through after Yes, and after saving (the medicine is saved, so nothing to quit).
+  const pendingLeave = useRef<Parameters<typeof navigation.dispatch>[0] | null>(null);
+  const allowLeave = useRef(false);
+
+  useEffect(() => {
+    return navigation.addListener('beforeRemove', (e) => {
+      if (allowLeave.current) return;
+      e.preventDefault();
+      pendingLeave.current = e.data.action;
+      setQuitOpen(true);
+    });
+  }, [navigation]);
+
+  const confirmQuit = () => {
+    allowLeave.current = true;
+    setQuitOpen(false);
+    if (pendingLeave.current) navigation.dispatch(pendingLeave.current);
+  };
+
+  // TODO: actually save the medicine to the vault. For now Save to Vault only shows the Medicine Added overlay.
+  const onSave = () => {
+    allowLeave.current = true;
+    setAddedOpen(true);
+  };
+
+  const goToVault = () => {
+    setAddedOpen(false);
+    router.navigate('/vault');
+  };
 
   if (!match) {
     return (
@@ -136,6 +171,14 @@ export default function EditMedicineScreen() {
           <Text style={styles.saveText}>Save to Vault</Text>
         </Pressable>
       </View>
+
+      <MedicineAddedModal
+        visible={addedOpen}
+        medicineName={name}
+        onViewVault={goToVault}
+        onClose={() => setAddedOpen(false)}
+      />
+      <QuitEditingModal visible={quitOpen} onConfirm={confirmQuit} onCancel={() => setQuitOpen(false)} />
     </KeyboardAvoidingView>
   );
 }

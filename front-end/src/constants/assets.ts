@@ -36,6 +36,9 @@ export const Assets = {
     scanAmber: require('../../assets/images/result/scan-amber.svg'),
     // Edit Medicine screen
     chevronDown: require('../../assets/images/edit-medicine/chevron-down.svg'),
+    // Overlays (Medicine Added, Leave page?)
+    checkAdded: require('../../assets/images/overlays/check-added.svg'),
+    warningLeave: require('../../assets/images/overlays/warning-leave.svg'),
     // Manual Entry screen
     search: require('../../assets/images/manual-entry/search.svg'),
     calendar: require('../../assets/images/manual-entry/calendar.svg'),
