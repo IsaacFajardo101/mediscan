@@ -29,6 +29,11 @@ export default function RootLayout() {
             options={{ headerShown: true, header: () => <AppHeader title="Scan Result" back /> }}
           />
 
+          <Stack.Screen
+            name="edit-medicine"
+            options={{ headerShown: true, header: () => <AppHeader title="Edit Medicine" back /> }}
+          />
+
           {/* Sign-in flow (no header, no bottom bar) */}
           <Stack.Screen name="login" />
           <Stack.Screen name="signup" />

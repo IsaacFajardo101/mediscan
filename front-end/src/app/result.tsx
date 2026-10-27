@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,6 +19,12 @@ export default function ResultScreen() {
   const router = useRouter();
   const { state } = useLocalSearchParams<{ state?: string }>();
   const result = mockScanResults[isScanState(state) ? state : 'verified'];
+
+  // Needs Verification: at most one possible match is selected. Tapping the selected one again deselects it.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // TODO: actually save the medicine to the vault. For now it only opens the Vault screen.
+  const goToVault = () => router.navigate('/vault');
 
   return (
     <View style={styles.screen}>
@@ -49,8 +56,11 @@ export default function ResultScreen() {
               subtitle="Moderate confidence match"
               confidence={result.confidence}
             />
-            {/* TODO: open Manual Entry with the tapped match */}
-            <PossibleMatches matches={result.matches} />
+            <PossibleMatches
+              matches={result.matches}
+              selectedId={selectedId}
+              onSelect={(m) => setSelectedId((prev) => (prev === m.id ? null : m.id))}
+            />
           </>
         )}
 
@@ -66,8 +76,11 @@ export default function ResultScreen() {
 
       <ScanActions
         status={result.status}
+        hasSelection={selectedId !== null}
         onRedoScan={() => router.replace('/camera')}
-        // TODO: open the medicine details screen / save this scan to the vault
+        onSave={goToVault}
+        onEdit={() => router.push({ pathname: '/edit-medicine', params: { id: selectedId } })}
+        // TODO: onViewDetails -> medicine details screen
       />
     </View>
   );

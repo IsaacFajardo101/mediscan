@@ -20,6 +20,8 @@ export type PossibleMatch = {
   id: string;
   name: string;
   category: string;
+  form: string;     // e.g. "Tablet", used to auto-fill Edit Medicine
+  strength: string; // e.g. "500 mg"
   similarity: number; // 0-100
   image: MatchImage;
 };
@@ -85,6 +87,8 @@ export function fromSearchResponse(res: ApiResponse): ScanResult {
     id: m.fda_approval_id,
     name: `${m.fda_brandname} ${m.fda_dosage_strength}`,
     category: m.fda_genericname,
+    form: m.fda_dosage_form,
+    strength: m.fda_dosage_strength,
     similarity: MOCK_SIMILARITIES[i],
     image: MOCK_IMAGES[i],
   }));
@@ -111,6 +115,13 @@ export const mockScanResults: Record<ScanState, ScanResult> = {
   needs_verification: fromSearchResponse(multipleResponse as ApiResponse),
   no_results: fromSearchResponse(emptyResponse as ApiResponse),
 };
+
+// Finds a possible match by id (used by Edit Medicine until real scan data is passed around).
+export function findPossibleMatch(id: string | undefined): PossibleMatch | undefined {
+  const result = mockScanResults.needs_verification;
+  if (result.status !== 'needs_verification') return undefined;
+  return result.matches.find((m) => m.id === id);
+}
 
 export const isScanState = (value: unknown): value is ScanState =>
   value === 'verified' || value === 'needs_verification' || value === 'no_results';
