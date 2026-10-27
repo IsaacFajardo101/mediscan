@@ -35,9 +35,16 @@ Branch: `frontend-results`. Work on the Scan Result and Manual Entry screens.
 - `PossibleMatchCard` (new, extracted from `PossibleMatches`): selected look (green background, 2px border, check badge).
 - `ScanActions` for needs_verification: no selection shows hint + filled amber Redo Scan; with a selection shows Edit + Save to Vault side by side and an outlined amber Redo Scan.
 - Edit opens `src/app/edit-medicine.tsx` (`/edit-medicine?id=...`, registered in `app/_layout.tsx` with `AppHeader back`, so the back arrow returns to Scan Result). It has the selected-medicine card, Medicine Name, Expiration Date (typed, auto-formatted), Medicine Form dropdown and Dosage / Strength, all auto-filled from the match except the date, plus a sticky Save to Vault bar. The Time of Intake, Brand Name, Manufacturer, Assigned To and Notes fields from the Figma frame are left out on purpose.
-- Save to Vault (here, on Scan Result needs_verification and verified) only calls `router.navigate('/vault')`; nothing is actually saved yet.
+- Save to Vault (Scan Result needs_verification and verified, Edit Medicine, Manual Entry) now only opens the Medicine Added overlay (see Overlays); nothing is actually saved yet.
 - New shared pieces: `components/FormField.tsx` (`FormField`, `InputBox`, `FormColors`), `utils/date.ts` (`formatDateInput`), `findPossibleMatch(id)` in `mockScanResults.ts`; `PossibleMatch` now has `form` and `strength`. `manual-entry.tsx` still has its own copies of these.
 - New assets: check-selected, edit, save-white, scan-amber (`assets/images/result/`), chevron-down (`assets/images/edit-medicine/`).
+
+### Overlays (Figma `1615:3933` Medicine Added, `1945:4040` Leave page?)
+- `components/OverlayModal.tsx`: shared RN `Modal` with dim backdrop (`rgba(5,31,32,0.45)`), white 20px-radius card; tapping outside or Android back calls `onRequestClose`.
+- `components/MedicineAddedModal.tsx` (`visible`, `medicineName`, `onViewVault`, `onClose`): shown by Save to Vault on Scan Result, Manual Entry and Edit Medicine. View in Vault closes it and does `router.navigate('/vault')`; Add Another and tapping outside only close it (user's choice, new vs. the Figma frame). Name shown: verified medicine, selected match, or the typed Medicine Name.
+- `components/QuitEditingModal.tsx` (`visible`, `onConfirm`, `onCancel`): the Figma frame is named "Confirm – Delete Medicine" but it is only a "Leave page?" confirmation for quitting Edit Medicine. Yes goes back to Scan Result, Cancel and tapping outside close it.
+- `edit-medicine.tsx` shows it by intercepting the navigation `beforeRemove` event (header back arrow, Android back, swipe back), keeps the blocked action in `pendingLeave` and re-dispatches it on Yes. `allowLeave` ref skips the prompt after Yes and after Save to Vault (already saved). `Parameters<typeof navigation.dispatch>[0]` types the action because `@react-navigation/native` is not directly importable.
+- New assets in `assets/images/overlays/` (`check-added.svg`, `warning-leave.svg`), registered as `Assets.icons.checkAdded` and `warningLeave`. The soft red `#FDECEC` and grey text `#5B6B6C` are local constants, not tokens.
 
 ### Manual Entry: `src/app/manual-entry.tsx`
 - Medicine Name search input, Expiration Date input (auto-formats `MM / DD / YYYY`), helper texts, "verified details" card with five read-only "Auto-filled" fields, Save to Vault and Cancel (`router.back()`).
@@ -54,8 +61,8 @@ Branch: `frontend-results`. Work on the Scan Result and Manual Entry screens.
 ## Open items / TODO
 - Neither screen has been run and compared against the Figma frames yet.
 - Wire the real flow: scan response to `fromSearchResponse()` to `/result` with the data; derive the verified state from a one-medicine response (`response_1_single.json` has no expiry/batch number, and its manufacturer/category fields look mis-mapped).
-- Tapping a possible match (should open Manual Entry), View Medicine Details and Save to Vault are TODOs.
-- Manual Entry: medicine search results and picking (read-only fields stay empty), a date picker (none installed), Save to Vault.
+- Tapping a possible match (should open Manual Entry), View Medicine Details and actually saving to the vault (AsyncStorage) are TODOs. The overlays are not run/verified against Figma yet.
+- Manual Entry: medicine search results and picking (read-only fields stay empty), a date picker (none installed), real save.
 - The No Results frame reuses the hint "Tap the correct medicine above to edit or save it." from the design (probably a Figma leftover).
 - The amber/red banners use a thin translucent border in place of Figma's inset shadow.
 - Idea: a `__DEV__`-only state switcher on the Result screen, to flip between the three states in Expo Go.
