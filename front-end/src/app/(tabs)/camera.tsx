@@ -75,6 +75,9 @@ export default function CameraScreen() {
       // Step 3: send to backend (mock for now)
       await scanImage(result.base64);
       console.log("Image scan: sent");
+
+      // TEMP (for checking): go straight to the Scan Result screen, which shows sample data for now.
+      router.push("/result");
     } catch (e) {
       console.log("Processing failed:", e);
       Alert.alert("Error", "Could not process or send the image. Please try again.");
