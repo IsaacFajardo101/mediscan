@@ -30,6 +30,12 @@ export const Assets = {
     warningRed: require('../../assets/images/result/warning-red.svg'),
     scanWhite: require('../../assets/images/result/scan-white.svg'),
     scanRed: require('../../assets/images/result/scan-red.svg'),
+    checkSelected: require('../../assets/images/result/check-selected.svg'),
+    edit: require('../../assets/images/result/edit.svg'),
+    saveWhite: require('../../assets/images/result/save-white.svg'),
+    scanAmber: require('../../assets/images/result/scan-amber.svg'),
+    // Edit Medicine screen
+    chevronDown: require('../../assets/images/edit-medicine/chevron-down.svg'),
     // Manual Entry screen
     search: require('../../assets/images/manual-entry/search.svg'),
     calendar: require('../../assets/images/manual-entry/calendar.svg'),
