@@ -5,14 +5,15 @@ import { Colors, Spacing } from '@/constants/display';
 type Props = {
   visible: boolean;
   onRequestClose: () => void; // tap outside the card, or the Android back button
+  onDismiss?: () => void;     // iOS only: called once the closing animation has finished
   children: ReactNode;
 };
 
 // Dimmed full-screen backdrop with a white rounded card in the middle (Figma "Modal Card").
 // Shared by the Medicine Added and Leave page? overlays.
-export default function OverlayModal({ visible, onRequestClose, children }: Props) {
+export default function OverlayModal({ visible, onRequestClose, onDismiss, children }: Props) {
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onRequestClose} statusBarTranslucent>
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onRequestClose} onDismiss={onDismiss} statusBarTranslucent>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onRequestClose} accessibilityLabel="Close" />
         <View style={styles.card}>{children}</View>

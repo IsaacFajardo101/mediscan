@@ -39,6 +39,11 @@ export const Assets = {
     // Overlays (Medicine Added, Leave page?)
     checkAdded: require('../../assets/images/overlays/check-added.svg'),
     warningLeave: require('../../assets/images/overlays/warning-leave.svg'),
+    // Can't Read overlay (Camera)
+    unreadableScan: require('../../assets/images/overlays/unreadable-scan.svg'),
+    scanWhiteSmall: require('../../assets/images/overlays/scan-white.svg'),
+    image: require('../../assets/images/overlays/image.svg'),
+    pencil: require('../../assets/images/overlays/pencil.svg'),
     // Manual Entry screen
     search: require('../../assets/images/manual-entry/search.svg'),
     calendar: require('../../assets/images/manual-entry/calendar.svg'),
