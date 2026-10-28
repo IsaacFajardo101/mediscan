@@ -1,10 +1,11 @@
-import AddMenu from '@/components/AddMenu';
-import AppHeader from '@/components/AppHeader';
-import LogoutDialog from '@/components/LogoutDialog';
-import { MenuProvider } from '@/components/MenuContext';
-import SideMenu from '@/components/SideMenu';
+
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AppHeader from '@/components/AppHeader';
+import { MenuProvider } from '@/components/MenuContext';
+import AddMenu from '@/components/AddMenu';
+import LogoutDialog from '@/components/LogoutDialog';
+import HamburgerMenu from '@/components/HamburgerMenu';
 
 export default function RootLayout() {
   return (
@@ -14,10 +15,13 @@ export default function RootLayout() {
           {/* Main app (bottom bar + top bar) */}
           <Stack.Screen name="(tabs)" />
 
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="terms" />
+
           {/* Full screens with a back arrow (no bottom bar) */}
           <Stack.Screen
             name="notifications"
-            options={{ headerShown: true, header: () => <AppHeader title="Notifications" back /> }}
+            options={{ headerShown: false, }}
           />
           <Stack.Screen
             name="manual-entry"
@@ -42,7 +46,7 @@ export default function RootLayout() {
         </Stack>
 
         {/* Popups that sit on top of everything */}
-        <SideMenu />
+        <HamburgerMenu />
         <AddMenu />
         <LogoutDialog />
       </MenuProvider>

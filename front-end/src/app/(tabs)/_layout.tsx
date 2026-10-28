@@ -21,14 +21,6 @@ const tab = (title: string, icon: (c: any) => any, showLogo = false) => ({
   tabBarIcon: ({ color }: { color: any }) => icon(color),
 });
 
-// Screens opened from the burger menu / Settings. They are NOT in the bottom bar
-// They are hidden from the bottom bar, but they still have a header with a back button.
-const hidden = (title: string) => ({
-  title,
-  href: null,
-  header: () => <AppHeader title={title} back />,
-});
-
 export default function TabsLayout() {
   return (
     <Tabs
@@ -54,20 +46,10 @@ export default function TabsLayout() {
           tabBarStyle: { display: 'none' },
         }}
       />
-      <Tabs.Screen name="reminders" options={{ ...tab('Reminders', icons.reminders) }} />
+      <Tabs.Screen name="reminders" options={{ ...tab('Reminders', icons.reminders), headerShown: false, }} />
       <Tabs.Screen name="profiles" options={{ ...tab('Family Profile', icons.profiles), tabBarLabel: 'Profiles' }} />
+      <Tabs.Screen name="notifications" options={{ headerShown: false, }} />
 
-      {/* Burger menu screens (hidden from the bottom bar) */}
-      <Tabs.Screen name="settings" options={hidden('Settings')} />
-      <Tabs.Screen name="terms" options={hidden('Terms & Medical Disclaimer')} />
-
-      {/* Settings screens (hidden from the bottom bar) */}
-      <Tabs.Screen name="appearance" options={hidden('Appearance')} />
-      <Tabs.Screen name="language" options={hidden('Language')} />
-      <Tabs.Screen name="notification-settings" options={hidden('Notifications')} />
-      <Tabs.Screen name="privacy" options={hidden('Privacy')} />
-      <Tabs.Screen name="help-support" options={hidden('Help & Support')} />
-      <Tabs.Screen name="about" options={hidden('About MediScan')} />
     </Tabs>
   );
 }
