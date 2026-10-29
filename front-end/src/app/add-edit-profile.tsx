@@ -3,10 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
-  FlatList,
-  Image,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -17,7 +14,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getAvatarSource } from '../constants/avatars'; //
+import AvatarPickerSheet from '../components/AvatarPickerSheet';
+import ProfileAvatar from '../components/ProfileAvatar';
 import { useProfile } from '../context/ProfileContext';
 
 export default function AddEditProfileScreen() {
@@ -27,7 +25,6 @@ export default function AddEditProfileScreen() {
 
   const { profiles, addProfile, updateProfile } = useProfile();
 
-  // Find profile if in edit mode
   const existingProfile = profiles.find(
     (p) => p.profile_id.toString() === params.profileId
   );
@@ -42,45 +39,55 @@ export default function AddEditProfileScreen() {
   useEffect(() => {
     if (isEdit && existingProfile) {
       setFullname(existingProfile.profile_fullname);
-      setDisplayName(existingProfile.profile_display_name);
+      setDisplayName(
+        (existingProfile as any).profile_display_name ||
+        existingProfile.profile_display_name ||
+        ''
+      );
       setBirthdate(existingProfile.profile_birthdate);
       setIconId(existingProfile.profile_icon || 1);
     }
   }, [isEdit, existingProfile]);
 
- const handleSave = async () => {
+  // Validation: All fields with asterisks (*) are required
+  const handleSave = async () => {
     if (!fullname.trim()) {
-      Alert.alert('Required', 'Please enter a full name.');
+      Alert.alert('Required Field', 'Please enter Full Name.');
       return;
     }
-
-    // Fallback to full name if nickname is left blank
-    const finalDisplayName = displayName.trim() || fullname.trim();
+    if (!displayName.trim()) {
+      Alert.alert('Required Field', 'Please enter Nickname / Display Name.');
+      return;
+    }
+    if (!birthdate.trim()) {
+      Alert.alert('Required Field', 'Please enter Date of Birth.');
+      return;
+    }
 
     if (isEdit && existingProfile) {
       await updateProfile(existingProfile.profile_id, {
         profile_fullname: fullname.trim(),
-        profile_display_name: finalDisplayName,
-        profile_birthdate: birthdate.trim() || '2000-01-01',
+        profile_display_name: displayName.trim(),
+        profile_birthdate: birthdate.trim(),
         profile_icon: iconId,
       });
     } else {
       await addProfile({
         profile_icon: iconId,
         profile_fullname: fullname.trim(),
-        profile_display_name: finalDisplayName,
-        profile_birthdate: birthdate.trim() || '2000-01-01',
+        profile_display_name: displayName.trim(),
+        profile_birthdate: birthdate.trim(),
       });
     }
 
     router.back();
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header with Back Arrow */}
+      {/* Header */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1B4332" />
@@ -96,55 +103,58 @@ export default function AddEditProfileScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Avatar Circle */}
+          {/* Avatar Section: Consistent with Create Profile */}
           <View style={styles.avatarSection}>
             <TouchableOpacity
-              style={styles.avatarCircle}
+              style={styles.avatarWrap}
               activeOpacity={0.8}
               onPress={() => setShowPicker(true)}
             >
-              <Image
-                source={getAvatarSource(iconId)}
-                style={{ width: 96, height: 96, borderRadius: 48 }}
-              />
-             <View style={styles.editBadge}>
-                  <Ionicons name={isEdit ? 'pencil' : 'add'} size={14} color="#FFFFFF" />
-               </View>
+              <ProfileAvatar icon={iconId} size={96} />
+              <View style={styles.editBadge}>
+                <Ionicons name="pencil" size={14} color="#FFFFFF" />
+              </View>
             </TouchableOpacity>
-            <Text style={styles.avatarHint}>Tap to choose avatar</Text>
+            <Text style={styles.avatarHint}>Choose avatar</Text>
           </View>
 
-          {/* Input Fields */}
+          {/* Form Fields */}
           <View style={styles.form}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={styles.label}>
+              Full Name <Text style={styles.required}>*</Text>
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter full name"
+              placeholder="e.g. Maria Batumbakal"
               placeholderTextColor="#A0AEC0"
               value={fullname}
               onChangeText={setFullname}
             />
 
-            <Text style={styles.label}>Nickname / Display Name</Text>
+            <Text style={styles.label}>
+              Nickname / Display Name <Text style={styles.required}>*</Text>
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Me, Mama, Papa (Optional)"
+              placeholder="e.g. Me, Mama, Papa"
               placeholderTextColor="#A0AEC0"
               value={displayName}
               onChangeText={setDisplayName}
             />
 
-            <Text style={styles.label}>Date of Birth</Text>
+            <Text style={styles.label}>
+              Date of Birth <Text style={styles.required}>*</Text>
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter date of birth (e.g. January 1, 2006)"
+              placeholder="e.g. 2004-11-26 or January 1, 2006"
               placeholderTextColor="#A0AEC0"
               value={birthdate}
               onChangeText={setBirthdate}
             />
           </View>
 
-          {/* Bottom Save Button */}
+          {/* Save Button */}
           <TouchableOpacity style={styles.saveBtn} activeOpacity={0.8} onPress={handleSave}>
             <Text style={styles.saveBtnText}>
               {isEdit ? 'Save Changes' : 'Save Family Member'}
@@ -153,42 +163,16 @@ export default function AddEditProfileScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Modal visible={showPicker} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.pickerBox}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Choose an Avatar</Text>
-              <TouchableOpacity onPress={() => setShowPicker(false)}>
-                <Ionicons name="close" size={24} color="#4A5568" />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
-              numColumns={4}
-              keyExtractor={(id) => id.toString()}
-              renderItem={({ item: id }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.avatarOption,
-                    iconId === id && styles.selectedOption,
-                  ]}
-                  onPress={() => {
-                    setIconId(id);
-                    setShowPicker(false);
-                  }}
-                >
-                  <Image
-                    source={getAvatarSource(id)}
-                    style={{ width: 52, height: 52, borderRadius: 26 }}
-                  />
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
-
+      {/* Shared AvatarPickerSheet (Identical to Create Profile) */}
+      <AvatarPickerSheet
+        visible={showPicker}
+        selected={iconId}
+        onClose={() => setShowPicker(false)}
+        onSave={(newIcon: number) => {
+          setIconId(newIcon);
+          setShowPicker(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -207,25 +191,36 @@ const styles = StyleSheet.create({
   backButton: { padding: 4 },
   topBarTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
   scrollContent: { padding: 24, justifyContent: 'space-between', flexGrow: 1 },
-  avatarSection: { alignItems: 'center', marginVertical: 20 },
-  avatarCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  avatarSection: { alignItems: 'center', marginVertical: 16 },
+  avatarWrap: {
+    width: 96,
+    height: 96,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
-  avatarCircleAdd: {
-    backgroundColor: '#E8F5E9',
-    borderWidth: 1.5,
-    borderColor: '#52B788',
-    borderStyle: 'dashed',
+  editBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: '#0E3326',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  avatarCircleEdit: {
-    backgroundColor: '#FFD6D6',
+  avatarHint: {
+    fontSize: 13,
+    color: '#2D6A4F',
+    fontWeight: '600',
+    marginTop: 8,
   },
   form: { flex: 1 },
   label: { fontSize: 13, fontWeight: '600', color: '#4A5568', marginBottom: 6 },
+  required: { color: '#E53E3E' },
   input: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -246,63 +241,4 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  
-  editBadge: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    backgroundColor: '#2D6A4F',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  avatarHint: {
-    fontSize: 12,
-    color: '#2D6A4F',
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  modalBg: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  pickerBox: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: 380,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  pickerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1B4332',
-  },
-  avatarOption: {
-    flex: 1,
-    aspectRatio: 1,
-    margin: 6,
-    borderRadius: 12,
-    backgroundColor: '#F8FAF9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  selectedOption: {
-    borderWidth: 2.5,
-    borderColor: '#2D6A4F',
-    backgroundColor: '#D8F3DC',
-  },
 });
