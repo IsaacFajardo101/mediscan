@@ -28,11 +28,23 @@ export default function AppHeader({ title, showLogo, back }: Props) {
       <View style={styles.row}>
         {/* ito yung left side: back arrow or burger menu */}
         {back ? (
-          <Pressable style={styles.side} onPress={goBack} hitSlop={12} accessibilityLabel="Go back">
+          <Pressable
+            style={styles.side}
+            onPress={goBack}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Ionicons name="arrow-back" size={26} color={Colors.text} />
           </Pressable>
         ) : (
-          <Pressable style={styles.side} onPress={openMenu} hitSlop={12} accessibilityLabel="Open menu">
+          <Pressable
+            style={styles.side}
+            onPress={openMenu}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Open menu"
+          >
             <Ionicons name="menu" size={28} color={Colors.text} />
           </Pressable>
         )}
@@ -42,7 +54,12 @@ export default function AppHeader({ title, showLogo, back }: Props) {
           {showLogo ? (
             <Logo size={34} withText />
           ) : (
-            <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+            <Text
+              style={styles.title}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               {title}
             </Text>
           )}
@@ -58,7 +75,11 @@ export default function AppHeader({ title, showLogo, back }: Props) {
             hitSlop={12}
             accessibilityLabel="Notifications"
           >
-            <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={Colors.text}
+            />
           </Pressable>
         )}
       </View>

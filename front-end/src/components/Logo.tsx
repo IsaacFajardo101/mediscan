@@ -43,6 +43,6 @@ export default function Logo({ size = 32, variant, withText = false }: Props) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   col: { alignItems: 'center', gap: 4 },
-  text: { ...Type.h2, fontWeight: '800', color: Colors.text },
+  text: { ...Type.h2, lineHeight: 26, fontWeight: '800', color: Colors.text, includeFontPadding: false, textAlignVertical: 'center' },
   small: { fontSize: 10, fontWeight: '700', color: Colors.text },
 });
