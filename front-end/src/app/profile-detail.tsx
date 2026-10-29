@@ -21,6 +21,7 @@ export default function ProfileDetailScreen() {
   const { profiles, deleteProfileWithUndo } = useProfile();
 
   const [menuVisible, setMenuVisible] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Find the selected profile
   const profile = profiles.find((p) => p.profile_id.toString() === profileId);
@@ -39,11 +40,11 @@ export default function ProfileDetailScreen() {
       </SafeAreaView>
     );
   }
-
-  const handleDelete = () => {
+  
+// DELETE ACTION: Opens the confirmation modal
+ const handleDelete = () => {
     setMenuVisible(false);
-    deleteProfileWithUndo(profile.profile_id);
-    router.back(); 
+    setShowConfirmModal(true);
   };
 
   const handleEdit = () => {
@@ -52,6 +53,13 @@ export default function ProfileDetailScreen() {
       pathname: '/add-edit-profile' as any,
       params: { mode: 'edit', profileId: profile.profile_id },
     });
+  };
+
+  // CONFIRM DELETE ACTION: Deletes profile with 15s undo
+  const handleConfirmDelete = () => {
+    setShowConfirmModal(false);
+    deleteProfileWithUndo(profile.profile_id);
+    router.back();
   };
 
   return (
@@ -166,6 +174,40 @@ export default function ProfileDetailScreen() {
           </View>
         </View>
       </ScrollView>
+      
+       <Modal visible={showConfirmModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.dialog}>
+            <View style={styles.trashCircle}>
+              <Ionicons name="trash-outline" size={28} color="#D90429" />
+            </View>
+
+            <Text style={styles.dialogTitle}>Remove this profile?</Text>
+            <Text style={styles.dialogMsg}>
+              Are you sure you want to remove {profile.profile_fullname}'s profile? Her medicines, alerts and reminders will also be deleted.
+            </Text>
+
+            <View style={styles.dialogActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setShowConfirmModal(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.confirmBtn}
+                onPress={handleConfirmDelete}
+              >
+                <Text style={styles.confirmBtnText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
+
     </SafeAreaView>
   );
 }
@@ -267,4 +309,59 @@ const styles = StyleSheet.create({
   dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
   dropdownText: { fontSize: 14, fontWeight: '500', color: '#2D3748' },
   divider: { height: 1, backgroundColor: '#E2E8F0' },
+  trashCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  dialog: {
+    width: '85%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    alignSelf: 'center',
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1B4332',
+    textAlign: 'center',
+  },
+  dialogMsg: {
+    fontSize: 13,
+    color: '#718096',
+    textAlign: 'center',
+    marginVertical: 12,
+    lineHeight: 18,
+  },
+  dialogActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelBtnText: { color: '#4A5568', fontWeight: '600' },
+  confirmBtn: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#D90429',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmBtnText: { color: '#FFFFFF', fontWeight: '700' },
 });
