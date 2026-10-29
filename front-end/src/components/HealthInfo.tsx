@@ -79,7 +79,6 @@ export default function HealthInfo({
   const [saving, setSaving] = useState(false);
   const [kbHeight, setKbHeight] = useState(0);
 
-  // Load the saved values every time the sheet opens
   useEffect(() => {
     if (!visible) return;
     let active = true;
@@ -122,7 +121,6 @@ export default function HealthInfo({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        {/* Dark area (tap to close) */}
         <Pressable style={styles.backdrop} onPress={onClose} />
 
         <View

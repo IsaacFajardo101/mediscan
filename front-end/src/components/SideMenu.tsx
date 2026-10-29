@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, BackHandler, Dimensions, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, BackHandler, Dimensions, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
+import { getAvatarSource } from '@/constants/avatars';
 import Logo from './Logo';
 import { useMenu } from './MenuContext';
+
+// MOCK DATA: same account as the Profile screen. Replace with the real response later.
+const MOCK_USER = { name: 'Jane', email: 'user@example.com', icon: 3 };
 
 const PANEL_W = Dimensions.get('window').width * 0.78;
 
@@ -88,13 +92,15 @@ export default function SideMenu() {
                 router.navigate('/profile' as any);
            }}
           >
-           {/* TODO: replace with the real avatar image once Person 1/2's avatar assets are merged */}
-           <View style={styles.avatar}>
-            <Ionicons name="person" size={26} color={Colors.primary} />
+          <View style={styles.avatar}>
+            <Image
+              source={getAvatarSource(MOCK_USER.icon)}
+              style={{ width: 52, height: 52, borderRadius: 26 }}
+            />
           </View>
           <View style={{ flex: 1 }}>
-                <Text style={styles.name}>Maria Batumbakal</Text>
-                <Text style={styles.email}>mariabatumbakal@email.com</Text>
+            <Text style={styles.name}>{MOCK_USER.name}</Text>
+            <Text style={styles.email}>{MOCK_USER.email}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={Colors.text} />
           </Pressable>

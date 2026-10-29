@@ -40,14 +40,12 @@ export default function ProfileDetailScreen() {
     );
   }
 
-  // DELETE ACTION: Removes locally and starts 15-second timer
   const handleDelete = () => {
     setMenuVisible(false);
     deleteProfileWithUndo(profile.profile_id);
-    router.back(); // Return to Family Profiles list=
+    router.back(); 
   };
 
-  // EDIT ACTION: Navigates to add-edit-profile in Edit mode
   const handleEdit = () => {
     setMenuVisible(false);
     router.push({
@@ -119,28 +117,24 @@ export default function ProfileDetailScreen() {
         </View>
 
       <View style={styles.statsRow}>
-        {/* 1. Total Medicines (Green Pill) */}
         <View style={styles.statBox}>
           <Ionicons name="medical" size={18} color="#2D6A4F" style={{ marginBottom: 4 }} />
           <Text style={styles.statNum}>5</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
 
-        {/* 2. Verified (Shield Checkmark) */}
         <View style={styles.statBox}>
           <Ionicons name="shield-checkmark" size={18} color="#2D6A4F" style={{ marginBottom: 4 }} />
           <Text style={[styles.statNum, { color: '#2D6A4F' }]}>4</Text>
           <Text style={styles.statLabel}>Verified</Text>
         </View>
 
-        {/* 3. Needs Verification (Warning Triangle) */}
         <View style={styles.statBox}>
           <Ionicons name="warning" size={18} color="#D97706" style={{ marginBottom: 4 }} />
           <Text style={[styles.statNum, { color: '#D97706' }]}>1</Text>
           <Text style={styles.statLabel}>Needs Verif.</Text>
         </View>
 
-        {/* 4. Expiring (Calendar Alert) */}
         <View style={styles.statBox}>
           <Ionicons name="calendar" size={18} color="#DC2626" style={{ marginBottom: 4 }} />
           <Text style={[styles.statNum, { color: '#DC2626' }]}>2</Text>
@@ -148,7 +142,6 @@ export default function ProfileDetailScreen() {
         </View>
       </View>
 
-        {/* Upcoming Reminders Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Upcoming Reminders</Text>
           <TouchableOpacity>

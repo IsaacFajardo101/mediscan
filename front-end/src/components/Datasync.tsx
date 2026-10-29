@@ -4,17 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, FontSizes, Radius, Spacing, Type } from '@/constants/display';
 
-// =====================================================================
-// SYNC LOGIC (MOCK). Only syncNow() needs replacing when the backend is ready.
-//
-// Real flow (from the PDF):
-//   1. Send local data + offline change logs to the backend.
-//   2. Compare logs to see which side is more recent.
-//   3. Backend newer -> pull its data and save locally.
-//      Local newer   -> update the backend with local data.
-//   4. Save the last-synced time, then show "Up to date".
-// Call onProgress(0-100) as each step finishes.
-// =====================================================================
 const LAST_SYNCED_KEY = 'mediscan:lastSynced';
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -26,7 +15,6 @@ async function getLastSynced(): Promise<string | null> {
   }
 }
 
-// "Today, 9:32 AM" or "Oct 21, 9:32 AM"
 function formatLastSynced(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
@@ -48,9 +36,6 @@ async function syncNow(onProgress: (percent: number) => void): Promise<void> {
   await AsyncStorage.setItem(LAST_SYNCED_KEY, new Date().toISOString());
 }
 
-// =====================================================================
-// POPUP: "Syncing your data..." then "Up to date"
-// =====================================================================
 function SyncModal({
   visible, status, progress, onDone,
 }: {
@@ -68,7 +53,7 @@ function SyncModal({
       transparent
       animationType="fade"
       onRequestClose={() => {
-        if (done) onDone(); // Android back is blocked while syncing
+        if (done) onDone(); 
       }}
     >
       <View style={modalStyles.backdrop}>
@@ -105,9 +90,6 @@ function SyncModal({
   );
 }
 
-// =====================================================================
-// DATA SYNC SECTION (title + card + popup). Use as <DataSync />
-// =====================================================================
 type SyncStatus = 'idle' | 'syncing' | 'done';
 
 export default function DataSync() {
@@ -115,7 +97,6 @@ export default function DataSync() {
   const [progress, setProgress] = useState(0);
   const [lastSynced, setLastSynced] = useState('Never');
 
-  // Show the saved last-synced time when the page opens
   useEffect(() => {
     getLastSynced().then((iso) => {
       if (iso) setLastSynced(formatLastSynced(iso));
@@ -130,7 +111,7 @@ export default function DataSync() {
       await syncNow(setProgress);
       const iso = await getLastSynced();
       if (iso) setLastSynced(formatLastSynced(iso));
-      setStatus('done'); // shows the "Up to date" popup
+      setStatus('done'); 
     } catch (e) {
       console.warn('Sync failed', e);
       setStatus('idle');

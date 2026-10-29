@@ -11,16 +11,14 @@ import { useProfile } from '@/context/ProfileContext';
 import DataSync from '@/components/Datasync';
 import HealthInfo from '@/components/HealthInfo';
 
-// MOCK DATA: copied from the team's "Fetch Profile.json" response.
-// Replace with the real response once the backend is connected.
 const MOCK_ACCOUNT = {
   email: 'user@example.com',
   profile: {
     profile_id: 1,
     profile_icon: 3,
     profile_fullname: 'Jane',
-    profile_birthdate: '2004-02-26', // the mock file has "2004-26-2004" (invalid), fixed here
-    profile_display_name: 'Self', // CHANGES page says this becomes profile_displayname
+    profile_birthdate: '2004-02-26',
+    profile_display_name: 'Self', 
   },
 };
 
@@ -38,7 +36,6 @@ export default function ProfileScreen() {
     setIconId(id);
     setPickerOpen(false);
     try {
-      // Saves to the shared profile list (no-op if this id isn't in it yet)
       await updateProfile(profile.profile_id, { profile_icon: id });
     } catch (e) {
       console.warn('Could not save avatar', e);
