@@ -18,11 +18,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // ---- MOCK BACKEND (replace when the API is ready) ----
 const USE_MOCK = true; // change to false when the API is ready
 
-async function scanImage(base64: string) {
+type ScanState = "verified" | "needs_verification" | "no_results";
+
+// Each scan shows the next scenario: verified -> needs_verification -> no_results -> repeat
+const MOCK_STATES: ScanState[] = ["verified", "needs_verification", "no_results"];
+let mockIndex = 0;
+
+async function scanImage(base64: string): Promise<ScanState> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 1000)); // fake waiting time
     console.log("MOCK: pretending to send", Math.round(base64.length / 1024), "KB");
-    return;
+
+    const state = MOCK_STATES[mockIndex];
+    mockIndex = (mockIndex + 1) % MOCK_STATES.length;
+    console.log("MOCK result:", state);
+    return state;
   }
 
   const response = await fetch("https://PLACEHOLDER-URL/api/scan", {
@@ -32,6 +42,9 @@ async function scanImage(base64: string) {
   });
 
   if (!response.ok) throw new Error("Server error: " + response.status);
+
+  const data = await response.json();
+  return data.status; // adjust to match the real API response format
 }
 // ---- END MOCK BACKEND ----
 
@@ -73,11 +86,11 @@ export default function CameraScreen() {
       console.log("Base64 starts with:", result.base64.substring(0, 20));
 
       // Step 3: send to backend (mock for now)
-      await scanImage(result.base64);
-      console.log("Image scan: sent");
+      const state = await scanImage(result.base64);
+      console.log("Image scan result:", state);
 
-      // TEMP (for checking): go straight to the Scan Result screen, which shows sample data for now.
-      router.push("/result");
+      // Step 4: open the Scan Result screen with the matching scenario
+      router.push({ pathname: "/result", params: { state } });
     } catch (e) {
       console.log("Processing failed:", e);
       Alert.alert("Error", "Could not process or send the image. Please try again.");
