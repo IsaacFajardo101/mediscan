@@ -1,0 +1,119 @@
+{
+    "header": {
+        "success": true,
+        "code": 200,
+        "message": "10 medicines retrieved successfully."
+    },
+    "data": [
+        {
+            "fda_approval_id": "0f3b194307307840",
+            "fda_registration_id": "BR-1005",
+            "fda_brandname": "Heparin Leo",
+            "fda_genericname": "Heparin Sodium",
+            "fda_dosage_form": "Solution For Injection (IV/SC)",
+            "fda_dosage_strength": "5,000 IU/mL",
+            "fda_manufacturer": "Antithrombotic Agents",
+            "fda_pharmacologic_category": "Clear colorless glass Type I vial with coated grey 13 mm bromobutyl rubber stopper x 5 mL (Box of 50's)",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "b89b1967237573e4",
+            "fda_registration_id": "BR-1004",
+            "fda_brandname": "Heparin Leo",
+            "fda_genericname": "Heparin Sodium",
+            "fda_dosage_form": "Solution For Injection (IV/SC)",
+            "fda_dosage_strength": "1,000 IU/mL",
+            "fda_manufacturer": "Anticoagulant",
+            "fda_pharmacologic_category": "Type I clear glass vial with coated bromobutyl rubber stopper x 5mL (Box of 50 vials)",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "df905cd034e5beee",
+            "fda_registration_id": "BR-1053",
+            "fda_brandname": "Humalog Kwikpen",
+            "fda_genericname": "Insulin Lispro (rDNA origin)",
+            "fda_dosage_form": "Solution for Injection (IM/IV/SC)",
+            "fda_dosage_strength": "100 units/mL",
+            "fda_manufacturer": null,
+            "fda_pharmacologic_category": "3 mL Type I pre-filled clear glass pen (Kwikpen] sealed with red halobutyl plunger at the bottom of the cartridge + bilayer elastomeric disc seal [Product contact layer: grey halobutyl and non-product contact layer: red isoprene] at the top (Box of 5's)",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "91b1715827f7583c",
+            "fda_registration_id": "BR-1093",
+            "fda_brandname": "Actilyse",
+            "fda_genericname": "Alteplase",
+            "fda_dosage_form": "Powder for Solution for Infusion (IV",
+            "fda_dosage_strength": "50 mg",
+            "fda_manufacturer": null,
+            "fda_pharmacologic_category": "Each box contains: Ph. Eur. Type I colourless glass vial  with bromobutyl rubber stopper and aluminium/ polypropylene, dark green flip-off seal + Type I glass vial (Sterile Water for Injection as diluent) x 50 mL",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "2ea027fd89706cb7",
+            "fda_registration_id": "BR-1026",
+            "fda_brandname": "Aldurazyme",
+            "fda_genericname": "Laronidase",
+            "fda_dosage_form": "Concentrated Solution for IV Infusion",
+            "fda_dosage_strength": "580 mcg/mL (2.9 mg/5 mL)",
+            "fda_manufacturer": null,
+            "fda_pharmacologic_category": "USP Type I clear and colorless glass vial (Box of 1's)",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "89bf03e0df967a61",
+            "fda_registration_id": "BR-1048",
+            "fda_brandname": "Fabrazyme",
+            "fda_genericname": "Agalsidase Beta",
+            "fda_dosage_form": "Powder for Concentrate for Solution for  Infusion (IV)",
+            "fda_dosage_strength": "35 mg",
+            "fda_manufacturer": null,
+            "fda_pharmacologic_category": "20 mL Type I glass vial with gray chlorobutyl stopper  and aluminum crimp seal (Box of 1's)",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "23fa8d88ee96edad",
+            "fda_registration_id": "BR-1091",
+            "fda_brandname": "Recormon",
+            "fda_genericname": "Epoetin beta",
+            "fda_dosage_form": "Solution for Injection (S.C./I.V.)",
+            "fda_dosage_strength": "2,000 I.U./0.3 mL",
+            "fda_manufacturer": "Antianemic Preparations",
+            "fda_pharmacologic_category": "Pre-filled syringe of 0.3 mL with needle 27G 1/2\"  (Box of 6's)",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "926480d3c174f629",
+            "fda_registration_id": "BR-1068",
+            "fda_brandname": "Herceptin",
+            "fda_genericname": "Trastuzumab",
+            "fda_dosage_form": "Lyophilized Powder For Concentrate Solution For Infusion (IV)",
+            "fda_dosage_strength": "150 mg",
+            "fda_manufacturer": null,
+            "fda_pharmacologic_category": "Colourless glass vial (Box of 1's)",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "0d316d63e7cdffe7",
+            "fda_registration_id": "DRP-16105",
+            "fda_brandname": "Vortinex 10",
+            "fda_genericname": "Vortioxetine",
+            "fda_dosage_form": "Film-Coated Tablet",
+            "fda_dosage_strength": "10 mg",
+            "fda_manufacturer": "Hetero Labs Limited (Unit V)",
+            "fda_pharmacologic_category": "Antidepressant",
+            "fda_classification": "Prescription (Rx)"
+        },
+        {
+            "fda_approval_id": "5f66d1965ff49adf",
+            "fda_registration_id": "DRP-16102",
+            "fda_brandname": "Vilomet 500",
+            "fda_genericname": "Vildagliptin+ Metformin Hydrochloride",
+            "fda_dosage_form": "Film-Coated Tablet",
+            "fda_dosage_strength": "50 mg/500 mg",
+            "fda_manufacturer": "Exemed Pharmaceuticals",
+            "fda_pharmacologic_category": "Combination of Oral Blood Glucose Lowering Drugs",
+            "fda_classification": "Prescription (Rx)"
+        }
+    ]
+}

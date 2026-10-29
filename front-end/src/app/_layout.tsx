@@ -1,10 +1,9 @@
-import AddMenu from '@/components/AddMenu';
-import AppHeader from '@/components/AppHeader';
-import LogoutDialog from '@/components/LogoutDialog';
-import { MenuProvider } from '@/components/MenuContext';
-import SideMenu from '@/components/SideMenu';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AppHeader from '@/components/AppHeader';
+import { MenuProvider } from '@/components/MenuContext';
+import AddMenu from '@/components/AddMenu';
+import LogoutDialog from '@/components/LogoutDialog';
 
 export default function RootLayout() {
   return (
@@ -21,7 +20,17 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="manual-entry"
-            options={{ headerShown: true, header: () => <AppHeader title="Add Medicine" back /> }}
+            options={{ headerShown: true, header: () => <AppHeader title="Manual Entry" back /> }}
+          />
+
+          <Stack.Screen
+            name="result"
+            options={{ headerShown: true, header: () => <AppHeader title="Scan Result" back /> }}
+          />
+
+          <Stack.Screen
+            name="edit-medicine"
+            options={{ headerShown: true, header: () => <AppHeader title="Edit Medicine" back /> }}
           />
 
           {/* Sign-in flow (no header, no bottom bar) */}
@@ -42,7 +51,6 @@ export default function RootLayout() {
         </Stack>
 
         {/* Popups that sit on top of everything */}
-        <SideMenu />
         <AddMenu />
         <LogoutDialog />
       </MenuProvider>
