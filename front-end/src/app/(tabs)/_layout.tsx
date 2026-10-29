@@ -21,6 +21,14 @@ const tab = (title: string, icon: (c: any) => any, showLogo = false) => ({
   tabBarIcon: ({ color }: { color: any }) => icon(color),
 });
 
+// For screens that are NOT in the bottom bar but still show the bottom bar and a back arrow.
+// Use it like:  <Tabs.Screen name="settings" options={hidden('Settings')} />
+const hidden = (title: string) => ({
+  title,
+  href: null,
+  header: () => <AppHeader title={title} back />,
+});
+
 export default function TabsLayout() {
   return (
     <Tabs
@@ -46,10 +54,9 @@ export default function TabsLayout() {
           tabBarStyle: { display: 'none' },
         }}
       />
-      <Tabs.Screen name="reminders" options={{ ...tab('Reminders', icons.reminders), headerShown: false, }} />
+      <Tabs.Screen name="reminders" options={{ ...tab('Reminders', icons.reminders), headerShown: false }} />
       <Tabs.Screen name="profiles" options={{ ...tab('Family Profile', icons.profiles), tabBarLabel: 'Profiles' }} />
-      <Tabs.Screen name="notifications" options={{ headerShown: false, }} />
-
+      <Tabs.Screen name="notifications" options={{ headerShown: false }} />
     </Tabs>
   );
 }

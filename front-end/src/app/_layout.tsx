@@ -1,4 +1,3 @@
-
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppHeader from '@/components/AppHeader';
@@ -21,11 +20,19 @@ export default function RootLayout() {
           {/* Full screens with a back arrow (no bottom bar) */}
           <Stack.Screen
             name="notifications"
-            options={{ headerShown: false, }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="manual-entry"
-            options={{ headerShown: true, header: () => <AppHeader title="Add Medicine" back /> }}
+            options={{ headerShown: true, header: () => <AppHeader title="Manual Entry" back /> }}
+          />
+          <Stack.Screen
+            name="result"
+            options={{ headerShown: true, header: () => <AppHeader title="Scan Result" back /> }}
+          />
+          <Stack.Screen
+            name="edit-medicine"
+            options={{ headerShown: true, header: () => <AppHeader title="Edit Medicine" back /> }}
           />
 
           {/* Sign-in flow (no header, no bottom bar) */}
