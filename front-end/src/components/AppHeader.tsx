@@ -9,18 +9,20 @@ import { useMenu } from './MenuContext';
 
 type Props = {
   title: string;
-  showLogo?: boolean; // Home screen and upper tabs: burger + logo (left) + bell (right)
-  back?: boolean;     // Here yung back arrow, no bell, title centered. (for screens that are not the home screen)
+  showLogo?: boolean;    // Home screen and upper tabs: burger + logo (left) + bell (right)
+  back?: boolean;        // Here yung back arrow, no bell, title centered. (for screens that are not the home screen)
+  backToMenu?: boolean;  // Back arrow also reopens the hamburger menu (for screens opened from the menu)
 };
 
 // Itong AppHeader is the top bar of the app. It shows either yung logo or yung title, and either a back arrow or a burger menu.
-export default function AppHeader({ title, showLogo, back }: Props) {
+export default function AppHeader({ title, showLogo, back, backToMenu }: Props) {
   const router = useRouter();
   const { openMenu } = useMenu();
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
     else router.navigate('/' as any);
+    if (backToMenu) openMenu(); // return to the hamburger menu
   };
 
   return (

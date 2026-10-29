@@ -3,7 +3,8 @@ import AppHeader from '@/components/AppHeader';
 import ReminderIcon from '@/components/ReminderIcon';
 import { Colors } from '@/constants/display';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { MockAuth } from '@/mock/mockAuth';
+import { Redirect, Tabs } from 'expo-router';
 
 // ito yung tab bar layout na ginagamit sa buong app. It defines the bottom bar tabs, their icons, and the header for each screen.
 const icons = {
@@ -21,15 +22,9 @@ const tab = (title: string, icon: (c: any) => any, showLogo = false) => ({
   tabBarIcon: ({ color }: { color: any }) => icon(color),
 });
 
-// For screens that are NOT in the bottom bar but still show the bottom bar and a back arrow.
-// Use it like:  <Tabs.Screen name="settings" options={hidden('Settings')} />
-const hidden = (title: string) => ({
-  title,
-  href: null,
-  header: () => <AppHeader title={title} back />,
-});
-
 export default function TabsLayout() {
+  // START SCREEN: hangga't walang naka-login + napiling profile, Log In muna (walang tabs/icons).
+  if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;
   return (
     <Tabs
       backBehavior="history"
@@ -56,7 +51,6 @@ export default function TabsLayout() {
       />
       <Tabs.Screen name="reminders" options={{ ...tab('Reminders', icons.reminders), headerShown: false }} />
       <Tabs.Screen name="profiles" options={{ ...tab('Family Profile', icons.profiles), tabBarLabel: 'Profiles' }} />
-      <Tabs.Screen name="notifications" options={{ headerShown: false }} />
     </Tabs>
   );
 }
