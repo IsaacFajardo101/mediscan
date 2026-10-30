@@ -18,7 +18,7 @@ import { useProfile } from '../context/ProfileContext';
 export default function ProfileDetailScreen() {
   const router = useRouter();
   const { profileId } = useLocalSearchParams<{ profileId: string }>();
-  const { profiles, deleteProfileWithUndo } = useProfile();
+  const { profiles, activeProfile, deleteProfileWithUndo } = useProfile();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -84,16 +84,21 @@ export default function ProfileDetailScreen() {
           activeOpacity={1}
           onPress={() => setMenuVisible(false)}
         >
-          <View style={styles.dropdownMenu}>
+                   <View style={styles.dropdownMenu}>
             <TouchableOpacity style={styles.dropdownItem} onPress={handleEdit}>
               <Ionicons name="create-outline" size={18} color="#2D3748" style={{ marginRight: 10 }} />
               <Text style={styles.dropdownText}>Edit Profile</Text>
             </TouchableOpacity>
-            <View style={styles.divider} />
-            <TouchableOpacity style={styles.dropdownItem} onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={18} color="#D90429" style={{ marginRight: 10 }} />
-              <Text style={[styles.dropdownText, { color: '#D90429' }]}>Remove Profile</Text>
-            </TouchableOpacity>
+            {/* You can't remove the profile you're currently using */}
+            {activeProfile?.profile_id !== profile.profile_id && (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.dropdownItem} onPress={handleDelete}>
+                  <Ionicons name="trash-outline" size={18} color="#D90429" style={{ marginRight: 10 }} />
+                  <Text style={[styles.dropdownText, { color: '#D90429' }]}>Remove Profile</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>

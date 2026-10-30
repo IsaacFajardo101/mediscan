@@ -35,21 +35,18 @@ export default function AddEditProfileScreen() {
   const [birthdate, setBirthdate] = useState('');
   const [iconId, setIconId] = useState(1);
   const [showPicker, setShowPicker] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+   useEffect(() => {
     if (isEdit && existingProfile) {
       setFullname(existingProfile.profile_fullname);
-      setDisplayName(
-        (existingProfile as any).profile_display_name ||
-        existingProfile.profile_display_name ||
-        ''
-      );
+      setDisplayName(existingProfile.profile_display_name || '');   // ← now one line
       setBirthdate(existingProfile.profile_birthdate);
       setIconId(existingProfile.profile_icon || 1);
     }
   }, [isEdit, existingProfile]);
-
-  // Validation: All fields with asterisks (*) are required
+  
+    // Validation: All fields with asterisks (*) are required
   const handleSave = async () => {
     if (!fullname.trim()) {
       Alert.alert('Required Field', 'Please enter Full Name.');
@@ -64,23 +61,29 @@ export default function AddEditProfileScreen() {
       return;
     }
 
-    if (isEdit && existingProfile) {
-      await updateProfile(existingProfile.profile_id, {
-        profile_fullname: fullname.trim(),
-        profile_display_name: displayName.trim(),
-        profile_birthdate: birthdate.trim(),
-        profile_icon: iconId,
-      });
-    } else {
-      await addProfile({
-        profile_icon: iconId,
-        profile_fullname: fullname.trim(),
-        profile_display_name: displayName.trim(),
-        profile_birthdate: birthdate.trim(),
-      });
+    setSaving(true);
+    try {
+      if (isEdit && existingProfile) {
+        await updateProfile(existingProfile.profile_id, {
+          profile_fullname: fullname.trim(),
+          profile_display_name: displayName.trim(),
+          profile_birthdate: birthdate.trim(),
+          profile_icon: iconId,
+        });
+      } else {
+        await addProfile({
+          profile_icon: iconId,
+          profile_fullname: fullname.trim(),
+          profile_display_name: displayName.trim(),
+          profile_birthdate: birthdate.trim(),
+        });
+      }
+      router.back();
+    } catch (e) {
+      Alert.alert('Not saved', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setSaving(false);
     }
-
-    router.back();
   };
 
   return (
@@ -155,9 +158,14 @@ export default function AddEditProfileScreen() {
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity style={styles.saveBtn} activeOpacity={0.8} onPress={handleSave}>
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+            activeOpacity={0.8}
+            onPress={handleSave}
+            disabled={saving}
+          >
             <Text style={styles.saveBtnText}>
-              {isEdit ? 'Save Changes' : 'Save Family Member'}
+              {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Family Member'}
             </Text>
           </TouchableOpacity>
         </ScrollView>

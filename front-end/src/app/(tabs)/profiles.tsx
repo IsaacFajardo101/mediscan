@@ -7,14 +7,14 @@ import { Profile } from '../../types/profile';
 
 export default function FamilyProfilesTab() {
   const router = useRouter();
-  const { profiles, setActiveProfile, pendingDeleteId, undoDelete, undoSecondsLeft } = useProfile();
+  const { profiles, pendingDeleteId, undoDelete, undoSecondsLeft } = useProfile();
 
   const renderItem = ({ item }: { item: Profile }) => (
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.7}
+            // Viewing a family member does NOT switch the active profile (that's done on "Choose your profile")
       onPress={() => {
-        setActiveProfile(item);
         router.push({
           pathname: '/profile-detail',
           params: { profileId: item.profile_id },

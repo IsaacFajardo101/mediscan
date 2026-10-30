@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
-  FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View,
+  Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
 import { getAvatarSource } from '@/constants/avatars';
@@ -11,34 +11,30 @@ import { useProfile } from '@/context/ProfileContext';
 import DataSync from '@/components/Datasync';
 import HealthInfo from '@/components/HealthInfo';
 
-const MOCK_ACCOUNT = {
-  email: 'user@example.com',
-  profile: {
-    profile_id: 1,
-    profile_icon: 3,
-    profile_fullname: 'Jane',
-    profile_birthdate: '2004-02-26',
-    profile_display_name: 'Self', 
-  },
-};
-
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [healthOpen, setHealthOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const { updateProfile } = useProfile();
+    // The logged-in account + the profile picked on "Choose your profile"
+  const { activeProfile: profile, email, updateProfile } = useProfile();
+  // Shows the new avatar right away while the save is in progress
+  const [savingIcon, setSavingIcon] = useState<number | null>(null);
 
-  const { profile, email } = MOCK_ACCOUNT;
-  const [iconId, setIconId] = useState(profile.profile_icon);
+  if (!profile) return <Redirect href="/choose-profile" />;
+
+  const iconId = savingIcon ?? profile.profile_icon;
 
   const chooseAvatar = async (id: number) => {
-    setIconId(id);
     setPickerOpen(false);
+    if (id === profile.profile_icon) return;
+    setSavingIcon(id);
     try {
       await updateProfile(profile.profile_id, { profile_icon: id });
     } catch (e) {
-      console.warn('Could not save avatar', e);
+      Alert.alert('Avatar not saved', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setSavingIcon(null);
     }
   };
 

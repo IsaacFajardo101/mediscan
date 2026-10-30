@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import { useProfile } from '@/context/ProfileContext';
 
 const icon = { size: 22, color: Colors.primary };
 
@@ -37,7 +39,8 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
 
 export default function SettingsScreen() {
   const router = useRouter();
-
+  const { activeProfile, email } = useProfile();
+  
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {/* Profile card */}
@@ -45,13 +48,10 @@ export default function SettingsScreen() {
         style={({ pressed }) => [styles.profileCard, pressed && { backgroundColor: Colors.primarySoft }]}
         onPress={() => router.navigate('/profile' as any)}
       >
-       {/* ang need dito is yung avatar */}
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={30} color={Colors.primary} />
-        </View>
+        <ProfileAvatar icon={activeProfile?.profile_icon ?? 1} size={56} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>Maria Batumbakal</Text>
-          <Text style={styles.email}>mariabatumbakal@email.com</Text>
+          <Text style={styles.name} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
+          <Text style={styles.email} numberOfLines={1}>{email ?? ''}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.text} />
       </Pressable>
@@ -84,10 +84,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
     padding: Spacing.md, borderRadius: Radius.md,
     borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface,
-  },
-  avatar: {
-    width: 56, height: 56, borderRadius: Radius.pill, backgroundColor: Colors.primarySoft,
-    alignItems: 'center', justifyContent: 'center',
   },
   name: { ...Type.h3, color: Colors.text },
   email: { ...Type.caption, color: Colors.textMuted },

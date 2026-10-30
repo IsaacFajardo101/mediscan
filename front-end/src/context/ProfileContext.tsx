@@ -1,12 +1,21 @@
-import React, { createContext, useContext, useRef, useState } from 'react';
-import { MOCK_FETCH_PROFILES } from '../data/mockProfiles';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { MockAuth } from '../mock/mockAuth';
 import { AddProfileRequest, EditProfileRequest, Profile } from '../types/profile';
 
+// ONE source of truth for profiles. Data comes from MockAuth (the mock "backend").
+// Every screen reads it from here, so an edit anywhere shows up everywhere.
+// When the backend is ready, change MockAuth's functions, not this file.
+
+const UNDO_SECONDS = 15;
+
 interface ProfileContextType {
-  profiles: Profile[];
-  activeProfile: Profile | null;
+  email: string | null;
+  profiles: Profile[]; // hides a profile that is waiting for its undo window / DELETE
+  activeProfile: Profile | null; // the profile picked on "Choose your profile"
   setActiveProfile: (profile: Profile) => void;
-  addProfile: (data: AddProfileRequest) => Promise<void>;
+  /** Throws an Error(message) if the save fails. */
+  addProfile: (data: AddProfileRequest) => Promise<Profile>;
+  /** Throws an Error(message) if the save fails. */
   updateProfile: (profileId: number, data: EditProfileRequest) => Promise<void>;
   deleteProfileWithUndo: (profileId: number) => void;
   undoDelete: () => void;
@@ -17,87 +26,99 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profiles, setProfiles] = useState<Profile[]>(MOCK_FETCH_PROFILES.data.profiles);
-  const [activeProfile, setActiveProfile] = useState<Profile | null>(MOCK_FETCH_PROFILES.data.profiles[0]);
+  const store = useSyncExternalStore(MockAuth.subscribe, MockAuth.getSnapshot, MockAuth.getSnapshot);
 
-  // Undo deletion state
+  // ---- Delete with 15-second undo ----
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-  const [undoSecondsLeft, setUndoSecondsLeft] = useState<number>(15);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const backupProfileRef = useRef<Profile | null>(null);
+  // Hidden from lists: the pending one + any whose DELETE is still in flight (no flicker)
+  const [hiddenIds, setHiddenIds] = useState<number[]>([]);
+  const unhide = (id: number) => setHiddenIds((ids) => ids.filter((x) => x !== id));
+  const [undoSecondsLeft, setUndoSecondsLeft] = useState(UNDO_SECONDS);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingRef = useRef<number | null>(null);
 
-  // ADD PROFILE
-  const addProfile = async (data: AddProfileRequest) => {
-    const newProfile: Profile = {
-      profile_id: Date.now(), // Simulates backend auto-increment ID
-      ...data,
-    };
-    // Save locally
-    setProfiles((prev) => [...prev, newProfile]);
-    // In Sprint 4: Call POST /api/v1/accounts/me/profiles with payload
-  };
-
-  // UPDATE / EDIT PROFILE
-  const updateProfile = async (profileId: number, data: EditProfileRequest) => {
-    setProfiles((prev) =>
-      prev.map((p) => (p.profile_id === profileId ? { ...p, ...data } : p))
-    );
-    if (activeProfile?.profile_id === profileId) {
-      setActiveProfile((prev) => (prev ? { ...prev, ...data } : null));
-    }
-    // In Sprint 4: Call PUT /api/v1/accounts/me/profiles/{profileId}
-  };
-
-  // DELETE PROFILE WITH 15-SECOND UNDO
-  const deleteProfileWithUndo = (profileId: number) => {
-    const target = profiles.find((p) => p.profile_id === profileId);
-    if (!target) return;
-
-    backupProfileRef.current = target;
-    setPendingDeleteId(profileId);
-    setUndoSecondsLeft(15);
-
-    // 1. Remove from local screen immediately
-    setProfiles((prev) => prev.filter((p) => p.profile_id !== profileId));
-
-    // 2. Countdown ticker for UI
-    countdownIntervalRef.current = setInterval(() => {
-      setUndoSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownIntervalRef.current!);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    // 3. 15-second timeout to finalize delete
-    timerRef.current = setTimeout(() => {
-      console.log(`[Backend Sync] DELETE /api/v1/accounts/me/profiles/${profileId} confirmed.`);
-      setPendingDeleteId(null);
-      backupProfileRef.current = null;
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    }, 15000);
-  };
-
-  // UNDO DELETION
-  const undoDelete = () => {
+  const clearTimers = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-
-    if (backupProfileRef.current) {
-      setProfiles((prev) => [...prev, backupProfileRef.current!]);
-      backupProfileRef.current = null;
-    }
-    setPendingDeleteId(null);
+    if (tickRef.current) clearInterval(tickRef.current);
+    timerRef.current = null;
+    tickRef.current = null;
   };
+
+  // Sends the DELETE for whatever is pending (timer ended, or another delete started)
+  const commitPendingDelete = useCallback(() => {
+    const id = pendingRef.current;
+    clearTimers();
+    pendingRef.current = null;
+    setPendingDeleteId(null);
+    if (id === null) return;
+    MockAuth.deleteProfile(id).then((res) => {
+      // On success it's gone from the store; on failure it simply shows up again
+      if (!res.success) console.warn(`[Backend Sync] DELETE profile ${id} failed: ${res.message}`);
+      unhide(id);
+    });
+  }, []);
+
+  const deleteProfileWithUndo = useCallback(
+    (profileId: number) => {
+      if (store.activeProfile?.profile_id === profileId) return; // can't remove the profile in use
+      // Only one undo at a time: finish the previous delete first so it isn't lost
+      if (pendingRef.current !== null) commitPendingDelete();
+
+      pendingRef.current = profileId;
+      setPendingDeleteId(profileId);
+      setHiddenIds((ids) => [...ids, profileId]);
+      setUndoSecondsLeft(UNDO_SECONDS);
+
+      tickRef.current = setInterval(() => {
+        setUndoSecondsLeft((s) => Math.max(0, s - 1));
+      }, 1000);
+      timerRef.current = setTimeout(commitPendingDelete, UNDO_SECONDS * 1000);
+    },
+    [store.activeProfile, commitPendingDelete]
+  );
+
+  const undoDelete = useCallback(() => {
+    clearTimers();
+    if (pendingRef.current !== null) unhide(pendingRef.current);
+    pendingRef.current = null;
+    setPendingDeleteId(null);
+  }, []);
+
+  // Logging out cancels a pending delete instead of sending it with no session
+  useEffect(() => {
+    if (!store.email) {
+      undoDelete();
+      setHiddenIds([]);
+    }
+  }, [store.email, undoDelete]);
+  useEffect(() => clearTimers, []);
+
+  // ---- Add / Edit ----
+  const addProfile = useCallback(async (data: AddProfileRequest) => {
+    const res = await MockAuth.addProfile(data);
+    if (!res.success || !res.data) throw new Error(res.message);
+    return res.data;
+  }, []);
+
+  const updateProfile = useCallback(async (profileId: number, data: EditProfileRequest) => {
+    const res = await MockAuth.updateProfile(profileId, data);
+    if (!res.success) throw new Error(res.message);
+  }, []);
+
+  const setActiveProfile = useCallback((profile: Profile) => MockAuth.selectProfile(profile), []);
+
+  const profiles = useMemo(
+    () => store.profiles.filter((p) => !hiddenIds.includes(p.profile_id)),
+    [store.profiles, hiddenIds]
+  );
 
   return (
     <ProfileContext.Provider
       value={{
+        email: store.email,
         profiles,
-        activeProfile,
+        activeProfile: store.activeProfile,
         setActiveProfile,
         addProfile,
         updateProfile,

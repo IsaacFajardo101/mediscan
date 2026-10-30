@@ -6,10 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
 import { getAvatarSource } from '@/constants/avatars';
 import Logo from './Logo';
+import { useProfile } from '@/context/ProfileContext';
 import { useMenu } from './MenuContext';
-
-// MOCK DATA: same account as the Profile screen. Replace with the real response later.
-const MOCK_USER = { name: 'Jane', email: 'user@example.com', icon: 3 };
 
 const PANEL_W = Dimensions.get('window').width * 0.78;
 
@@ -32,6 +30,8 @@ export default function SideMenu() {
   const { open, closeMenu, openLogout } = useMenu();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+    // Same account + active profile as the Profile screen
+  const { activeProfile, email } = useProfile();
 
   const [mounted, setMounted] = useState(false);
   const x = useRef(new Animated.Value(-PANEL_W)).current; // panel position
@@ -94,13 +94,13 @@ export default function SideMenu() {
           >
           <View style={styles.avatar}>
             <Image
-              source={getAvatarSource(MOCK_USER.icon)}
+              source={getAvatarSource(activeProfile?.profile_icon)}
               style={{ width: 52, height: 52, borderRadius: 26 }}
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{MOCK_USER.name}</Text>
-            <Text style={styles.email}>{MOCK_USER.email}</Text>
+            <Text style={styles.name} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
+            <Text style={styles.email} numberOfLines={1}>{email ?? ''}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={Colors.text} />
           </Pressable>

@@ -11,7 +11,7 @@ export interface Profile {
 export interface AddProfileRequest {
   profile_icon: number;
   profile_fullname: string;
-  profile_birthdate: string;
+  profile_birthdate: string; //  profile_birthdate: string; // YYYY-MM-DD
   profile_display_name: string;
 }
 
