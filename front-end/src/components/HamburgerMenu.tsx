@@ -20,7 +20,7 @@ import { usePathname } from 'expo-router';
 const PANEL_W = Dimensions.get('window').width * 0.78;
 
 // To add another menu item later: add another line here, then create its screen file.
-// `route` = the screen it opens (file name in src/app/(tabs)/).
+// `route` = the screen it opens (file name in src/app/).
 const ITEMS: { label: string; icon: React.ReactElement; route: string }[] = [
   {
     label: 'Settings',
@@ -52,7 +52,6 @@ export default function HamburgerMenu() {
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('Current route:', pathname);
   }, [pathname]);
 
   const insets = useSafeAreaInsets();
@@ -150,15 +149,15 @@ export default function HamburgerMenu() {
             <Logo size={26} withText />
           </View>
 
-          {/* Profile card */}
+          {/* Profile card: opens the account Profile screen */}
           <Pressable
             style={({ pressed }) => [
               styles.profileCard,
               pressed && { backgroundColor: Colors.primarySoft },
             ]}
             onPress={() => {
-              closeMenu();
-              router.navigate('/profiles' as any);
+              router.navigate('/profile' as any);
+              setTimeout(closeMenu, 50);
             }}
             accessibilityRole="button"
           >
@@ -196,15 +195,9 @@ export default function HamburgerMenu() {
                     backgroundColor: Colors.primarySoft,
                   },
                 ]}
-                onPress={() => { closeMenu();
-                  const route =
-                    item.route === '/settings'
-                      ? '/settings'
-                      : item.route === '/terms'
-                        ? '/terms'
-                        : item.route;
-
-                    router.push(route as any);
+                onPress={() => {
+                  router.push(item.route as any);
+                  setTimeout(closeMenu, 50);
                 }}
                 accessibilityRole="button"
               >
