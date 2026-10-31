@@ -1,0 +1,20 @@
+{
+    "header": {
+        "success": true,
+        "code": 200,
+        "message": "Medicine retrieved successfully."
+    },
+    "data": [
+        {
+            "fda_approval_id": "0f3b194307307840",
+            "fda_registration_id": "BR-1005",
+            "fda_brandname": "Heparin Leo",
+            "fda_genericname": "Heparin Sodium",
+            "fda_dosage_form": "Solution For Injection (IV/SC)",
+            "fda_dosage_strength": "5,000 IU/mL",
+            "fda_manufacturer": "Antithrombotic Agents",
+            "fda_pharmacologic_category": "Clear colorless glass Type I vial with coated grey 13 mm bromobutyl rubber stopper x 5 mL (Box of 50's)",
+            "fda_classification": "Prescription (Rx)"
+        }
+    ]
+}

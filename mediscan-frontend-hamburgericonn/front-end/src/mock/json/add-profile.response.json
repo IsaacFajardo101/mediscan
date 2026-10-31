@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "code": 201,
+  "message": "Profile created successfully.",
+  "data": {
+    "profile_id": 3,
+    "profile_icon": 5,
+    "profile_fullname": "Johana Doe",
+    "profile_display_name": "Mama",
+    "profile_birthdate": "2004-11-03"
+  }
+}
