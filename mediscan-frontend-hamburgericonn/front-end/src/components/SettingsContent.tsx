@@ -4,6 +4,7 @@ import { Camera } from 'expo-camera';
 import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Screen = 'Settings' | 'Display' | 'Language' | 'Notifications' | 'Offline Database' | 'Privacy' | 'FAQs' | 'About MediScan' | 'Privacy Policy' | 'Terms of Service' | 'Open Source Licenses';
 
@@ -65,12 +66,40 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
 
   useEffect(() => {
-    let mounted = true;
-    Camera.getCameraPermissionsAsync()
-      .then((result) => { if (mounted) setCameraEnabled(result.granted); })
-      .catch(() => { if (mounted) setCameraEnabled(false); });
-    return () => { mounted = false; };
-  }, []);
+  let mounted = true;
+
+  const loadCameraSetting = async () => {
+  try {
+    const savedSetting = await AsyncStorage.getItem(
+      '@mediscan_camera_enabled'
+    );
+
+    if (!mounted) return;
+
+    if (savedSetting !== null) {
+      setCameraEnabled(savedSetting === 'true');
+    } else {
+      const permission = await Camera.getCameraPermissionsAsync();
+
+      if (mounted) {
+        setCameraEnabled(permission.granted);
+      }
+    }
+  } catch (error) {
+    console.warn('Camera setting error:', error);
+
+    if (mounted) {
+      setCameraEnabled(false);
+    }
+  }
+};
+
+loadCameraSetting();
+
+  return () => {
+    mounted = false;
+  };
+}, []);
 
 
   const goBack = () => {
@@ -85,22 +114,59 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   const openScreen = (next: Screen) => setScreen(next);
 
 
-  const toggleCamera = async (value: boolean) => {
-    if (!value) {
-      setCameraEnabled(false);
-      Alert.alert('Camera permission', 'The app switch is off. To revoke device permission itself, open your phone Settings and change MediScan camera access.');
-      return;
-    }
+ const toggleCamera = async (value: boolean) => {
+  if (!value) {
+    setCameraEnabled(false);
+
     try {
-      const result = await Camera.requestCameraPermissionsAsync();
-      setCameraEnabled(result.granted);
-      if (!result.granted) Alert.alert('Permission needed', 'Allow camera access in your device settings to use camera features.');
+      await AsyncStorage.setItem('@mediscan_camera_enabled', 'false');
+    } catch (error) {
+      console.warn('Camera setting save error:', error);
+    }
+
+    return;
+  }
+
+  try {
+    const permission = await Camera.requestCameraPermissionsAsync();
+    const enabled = permission.granted;
+
+    setCameraEnabled(enabled);
+
+    await AsyncStorage.setItem(
+      '@mediscan_camera_enabled',
+      String(enabled)
+    );
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow camera access in your device settings to use camera features.'
+      );
+    }
+  } catch (error) {
+    console.warn('Camera permission error:', error);
+
+    try {
+      const permission = await Camera.getCameraPermissionsAsync();
+      const enabled = permission.granted;
+
+      setCameraEnabled(enabled);
+
+      await AsyncStorage.setItem(
+        '@mediscan_camera_enabled',
+        String(enabled)
+      );
     } catch {
       setCameraEnabled(false);
-      Alert.alert('Camera permission', 'Camera permission could not be requested on this device.');
-    }
-  };
 
+      Alert.alert(
+        'Camera permission',
+        'Camera permission could not be checked on this device.'
+      );
+    }
+  }
+};
 
   const startSync = () => {
     setSyncModal('syncing');
@@ -530,11 +596,11 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   return (
     <View style={styles.container}>
       <View style={styles.main}>
-        {screen === 'Settings' && <SettingsScreen />}
-        {screen === 'Display' && <DisplayScreen />}
-        {screen === 'Language' && <LanguageScreen />}
-        {screen === 'Notifications' && <NotificationsScreen />}
-        {!['Settings', 'Display', 'Language', 'Notifications'].includes(screen) && <OtherScreen />}
+        {screen === 'Settings' && SettingsScreen()}
+{screen === 'Display' && DisplayScreen()}
+{screen === 'Language' && LanguageScreen()}
+{screen === 'Notifications' && NotificationsScreen()}
+{!['Settings', 'Display', 'Language', 'Notifications'].includes(screen) && OtherScreen()}
       </View>
     </View>
   );
