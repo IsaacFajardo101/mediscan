@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "Profiles retrieved successfully.",
+  "data": {
+    "account_id": 1042,
+    "email": "user@example.com",
+    "profiles": [
+      {
+        "profile_id": 1,
+        "profile_icon": 3,
+        "profile_fullname": "Jane Doe",
+        "profile_display_name": "Me",
+        "profile_birthdate": "2004-02-26"
+      },
+      {
+        "profile_id": 2,
+        "profile_icon": 1,
+        "profile_fullname": "Jan Doe",
+        "profile_display_name": "Jan",
+        "profile_birthdate": "2015-08-22"
+      }
+    ]
+  }
+}

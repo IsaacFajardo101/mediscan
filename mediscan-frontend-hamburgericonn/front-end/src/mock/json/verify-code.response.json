@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "Account verified successfully.",
+  "data": {
+    "session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "session_expire_at": "2026-10-19T11:45:00Z"
+  }
+}
