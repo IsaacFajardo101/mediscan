@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -30,11 +30,11 @@ export default function AddEditProfileScreen() {
     (p) => p.profile_id.toString() === params.profileId
   );
 
-  // Form State
-  const [fullname, setFullname] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [birthdate, setBirthdate] = useState('');
-  const [iconId, setIconId] = useState(1);
+  // Form State — pre-filled from the profile when editing (no useEffect needed)
+  const [fullname, setFullname] = useState(() => (isEdit ? existingProfile?.profile_fullname ?? '' : ''));
+  const [displayName, setDisplayName] = useState(() => (isEdit ? existingProfile?.profile_display_name ?? '' : ''));
+  const [birthdate, setBirthdate] = useState(() => (isEdit ? fromApiDate(existingProfile?.profile_birthdate) : '')); // "2004-02-26" -> "02/26/2004"
+  const [iconId, setIconId] = useState(() => (isEdit ? existingProfile?.profile_icon || 1 : 1));
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   // Required-field reminder popup + which fields to outline in red
@@ -42,15 +42,6 @@ export default function AddEditProfileScreen() {
   const [badDate, setBadDate] = useState(false);
   const [reminder, setReminder] = useState<{ title: string; message: string; items?: string[] } | null>(null);
 
-   useEffect(() => {
-    if (isEdit && existingProfile) {
-      setFullname(existingProfile.profile_fullname);
-      setDisplayName(existingProfile.profile_display_name || '');   // ← now one line
-      setBirthdate(fromApiDate(existingProfile.profile_birthdate)); // "2004-02-26" -> "02/26/2004"
-      setIconId(existingProfile.profile_icon || 1);
-    }
-  }, [isEdit, existingProfile]);
-  
   // Validation: All fields with asterisks (*) are required
   const handleSave = async () => {
     const empty: string[] = [];
@@ -106,7 +97,7 @@ export default function AddEditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.topBar}>
@@ -248,23 +239,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+  // Same pencil badge as Create Profile
   editBadge: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    backgroundColor: '#0E3326',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#183732',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#F8FAFC',
   },
   avatarHint: {
-    fontSize: 13,
-    color: '#2D6A4F',
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: '700',
     marginTop: 8,
   },
   form: { flex: 1 },

@@ -109,7 +109,7 @@ export default function CreateProfileScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
         {isFirst ? (
           <>
-            <Text style={styles.title}>Let's set up your profile</Text>
+            <Text style={styles.title}>Let&apos;s set up your profile</Text>
             <Text style={styles.subtitle}>This will be the first profile on MediScan. You can add family members later.</Text>
           </>
         ) : null}
