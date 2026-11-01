@@ -1,7 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -13,14 +12,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import AvatarPickerSheet from '../components/AvatarPickerSheet';
-import ProfileAvatar from '../components/ProfileAvatar';
-import ReminderDialog from '../components/ReminderDialog';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProfile } from '../context/ProfileContext';
-import { fromApiDate, maskDate, toApiDate } from '../lib/validation';
+import ProfileAvatar from '../components/ProfileAvatar';
+import AvatarPickerSheet from '../components/AvatarPickerSheet';
 
 export default function AddEditProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string; profileId?: string }>();
   const isEdit = params.mode === 'edit';
 
@@ -30,78 +31,72 @@ export default function AddEditProfileScreen() {
     (p) => p.profile_id.toString() === params.profileId
   );
 
-  // Form State — pre-filled from the profile when editing (no useEffect needed)
-  const [fullname, setFullname] = useState(() => (isEdit ? existingProfile?.profile_fullname ?? '' : ''));
-  const [displayName, setDisplayName] = useState(() => (isEdit ? existingProfile?.profile_display_name ?? '' : ''));
-  const [birthdate, setBirthdate] = useState(() => (isEdit ? fromApiDate(existingProfile?.profile_birthdate) : '')); // "2004-02-26" -> "02/26/2004"
-  const [iconId, setIconId] = useState(() => (isEdit ? existingProfile?.profile_icon || 1 : 1));
+  // Form State
+  const [fullname, setFullname] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [birthdate, setBirthdate] = useState('');
+  const [iconId, setIconId] = useState(1);
   const [showPicker, setShowPicker] = useState(false);
-  const [saving, setSaving] = useState(false);
-  // Required-field reminder popup + which fields to outline in red
-  const [missing, setMissing] = useState<string[]>([]);
-  const [badDate, setBadDate] = useState(false);
-  const [reminder, setReminder] = useState<{ title: string; message: string; items?: string[] } | null>(null);
 
-  // Validation: All fields with asterisks (*) are required
+  useEffect(() => {
+    if (isEdit && existingProfile) {
+      queueMicrotask(() => {
+        setFullname(existingProfile.profile_fullname);
+        setDisplayName(
+          (existingProfile as any).profile_display_name ||
+          (existingProfile as any).profile_relationship ||
+          ''
+        );
+        setBirthdate(existingProfile.profile_birthdate);
+        setIconId(existingProfile.profile_icon || 1);
+      });
+    }
+  }, [isEdit, existingProfile]);
+
   const handleSave = async () => {
-    const empty: string[] = [];
-    if (!fullname.trim()) empty.push('Full Name');
-    if (!displayName.trim()) empty.push('Nickname / Display Name');
-    if (!birthdate.trim()) empty.push('Date of Birth');
-    setMissing(empty);
-    if (empty.length) {
-      setBadDate(false);
-      setReminder({
-        title: 'Required fields',
-        message: 'Please fill out the following before saving:',
-        items: empty,
-      });
+    if (!fullname.trim()) {
+      Alert.alert('Required Field', 'Please enter Full Name.');
+      return;
+    }
+    if (!displayName.trim()) {
+      Alert.alert('Required Field', 'Please enter Nickname / Display Name.');
+      return;
+    }
+    if (!birthdate.trim()) {
+      Alert.alert('Required Field', 'Please enter Date of Birth.');
       return;
     }
 
-    // Date of Birth: numbers only, MM/DD/YYYY -> sent to backend as YYYY-MM-DD
-    const apiBirthdate = toApiDate(birthdate);
-    setBadDate(!apiBirthdate);
-    if (!apiBirthdate) {
-      setReminder({
-        title: 'Invalid date of birth',
-        message: 'Please enter the date of birth in numbers as MM/DD/YYYY (e.g. 02/26/2004).',
+    if (isEdit && existingProfile) {
+      await updateProfile(existingProfile.profile_id, {
+        profile_fullname: fullname.trim(),
+        profile_display_name: displayName.trim(),
+        profile_birthdate: birthdate.trim(),
+        profile_icon: iconId,
       });
-      return;
+    } else {
+      await addProfile({
+        profile_icon: iconId,
+        profile_fullname: fullname.trim(),
+        profile_display_name: displayName.trim(),
+        profile_birthdate: birthdate.trim(),
+      });
     }
 
-    setSaving(true);
-    try {
-      if (isEdit && existingProfile) {
-        await updateProfile(existingProfile.profile_id, {
-          profile_fullname: fullname.trim(),
-          profile_display_name: displayName.trim(),
-          profile_birthdate: apiBirthdate,
-          profile_icon: iconId,
-        });
-      } else {
-        await addProfile({
-          profile_icon: iconId,
-          profile_fullname: fullname.trim(),
-          profile_display_name: displayName.trim(),
-          profile_birthdate: apiBirthdate,
-        });
-      }
-      router.back();
-    } catch (e) {
-      setReminder({ title: 'Not saved', message: e instanceof Error ? e.message : 'Please try again.' });
-    } finally {
-      setSaving(false);
-    }
+    router.back();
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
           <Ionicons name="arrow-back" size={24} color="#1B4332" />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>
@@ -115,7 +110,7 @@ export default function AddEditProfileScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Avatar Section: Consistent with Create Profile */}
+          {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <TouchableOpacity
               style={styles.avatarWrap}
@@ -136,74 +131,46 @@ export default function AddEditProfileScreen() {
               Full Name <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, missing.includes('Full Name') && styles.inputInvalid]}
+              style={styles.input}
               placeholder="e.g. Maria Batumbakal"
               placeholderTextColor="#A0AEC0"
-              autoCapitalize="words"
               value={fullname}
-              onChangeText={(t) => {
-                setFullname(t);
-                setMissing((m) => m.filter((f) => f !== 'Full Name'));
-              }}
+              onChangeText={setFullname}
             />
 
             <Text style={styles.label}>
               Nickname / Display Name <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, missing.includes('Nickname / Display Name') && styles.inputInvalid]}
+              style={styles.input}
               placeholder="e.g. Me, Mama, Papa"
               placeholderTextColor="#A0AEC0"
-              autoCapitalize="words"
               value={displayName}
-              onChangeText={(t) => {
-                setDisplayName(t);
-                setMissing((m) => m.filter((f) => f !== 'Nickname / Display Name'));
-              }}
+              onChangeText={setDisplayName}
             />
 
             <Text style={styles.label}>
-              Date of Birth (MM/DD/YYYY) <Text style={styles.required}>*</Text>
+              Date of Birth <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, (missing.includes('Date of Birth') || badDate) && styles.inputInvalid]}
-              placeholder="MM/DD/YYYY"
+              style={styles.input}
+              placeholder="e.g. 2004-11-26 or January 1, 2006"
               placeholderTextColor="#A0AEC0"
-              keyboardType="number-pad"
-              maxLength={10}
               value={birthdate}
-              onChangeText={(t) => {
-                setBirthdate(maskDate(t)); // numbers only, slashes added automatically
-                setBadDate(false);
-                setMissing((m) => m.filter((f) => f !== 'Date of Birth'));
-              }}
+              onChangeText={setBirthdate}
             />
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity
-            style={[styles.saveBtn, saving && { opacity: 0.7 }]}
-            activeOpacity={0.8}
-            onPress={handleSave}
-            disabled={saving}
-          >
+          <TouchableOpacity style={styles.saveBtn} activeOpacity={0.8} onPress={handleSave}>
             <Text style={styles.saveBtnText}>
-              {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Family Member'}
+              {isEdit ? 'Save Changes' : 'Save Family Member'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Required-field reminder popup */}
-      <ReminderDialog
-        visible={!!reminder}
-        title={reminder?.title ?? ''}
-        message={reminder?.message ?? ''}
-        items={reminder?.items}
-        onClose={() => setReminder(null)}
-      />
-
-      {/* Shared AvatarPickerSheet (Identical to Create Profile) */}
+      {/* Shared Avatar Picker Sheet */}
       <AvatarPickerSheet
         visible={showPicker}
         selected={iconId}
@@ -239,24 +206,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  // Same pencil badge as Create Profile
   editBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#183732',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    bottom: 2,
+    right: 2,
+    backgroundColor: '#0E3326',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#F8FAFC',
+    borderColor: '#FFFFFF',
   },
   avatarHint: {
-    fontSize: 14,
-    color: '#2E7D32',
-    fontWeight: '700',
+    fontSize: 13,
+    color: '#2D6A4F',
+    fontWeight: '600',
     marginTop: 8,
   },
   form: { flex: 1 },
@@ -273,7 +239,6 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     backgroundColor: '#FAFAFA',
   },
-  inputInvalid: { borderColor: '#E53E3E', borderWidth: 1.5 },
   saveBtn: {
     backgroundColor: '#0E3326',
     height: 50,
