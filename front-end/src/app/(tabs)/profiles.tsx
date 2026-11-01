@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useProfile } from '../../context/ProfileContext';
+import { fromApiDate } from '../../lib/validation';
 import { Profile } from '../../types/profile';
 
 export default function FamilyProfilesTab() {
@@ -32,7 +33,7 @@ export default function FamilyProfilesTab() {
       <View style={styles.info}>
         <Text style={styles.name}>{item.profile_fullname}</Text>
         <Text style={styles.relationship}>
-          {item.profile_display_name} • Born {item.profile_birthdate}
+          {item.profile_display_name} • Born {fromApiDate(item.profile_birthdate)}
         </Text>
       </View>
 

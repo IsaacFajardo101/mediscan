@@ -47,8 +47,11 @@ export default function ProfileDetailScreen() {
     setShowConfirmModal(true);
   };
 
+  // You can't delete the profile you're currently using -> no 3-dots menu for it
+  const canDelete = activeProfile?.profile_id !== profile.profile_id;
+
+  // EDIT ACTION: from the "Edit" button on the user card
   const handleEdit = () => {
-    setMenuVisible(false);
     router.push({
       pathname: '/add-edit-profile' as any,
       params: { mode: 'edit', profileId: profile.profile_id },
@@ -72,9 +75,13 @@ export default function ProfileDetailScreen() {
           <Ionicons name="arrow-back" size={24} color="#1B4332" />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>{profile.profile_fullname}</Text>
-        <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.menuButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#1B4332" />
-        </TouchableOpacity>
+        {canDelete ? (
+          <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.menuButton}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#1B4332" />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 32 }} />
+        )}
       </View>
 
       {/* 3-Dots Dropdown Menu Modal */}
@@ -84,21 +91,12 @@ export default function ProfileDetailScreen() {
           activeOpacity={1}
           onPress={() => setMenuVisible(false)}
         >
-                   <View style={styles.dropdownMenu}>
-            <TouchableOpacity style={styles.dropdownItem} onPress={handleEdit}>
-              <Ionicons name="create-outline" size={18} color="#2D3748" style={{ marginRight: 10 }} />
-              <Text style={styles.dropdownText}>Edit Profile</Text>
+        {/* Edit is already on the user card, so the menu only has Delete */}
+          <View style={styles.dropdownMenu}>
+            <TouchableOpacity style={styles.dropdownItem} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={18} color="#D90429" style={{ marginRight: 10 }} />
+              <Text style={[styles.dropdownText, { color: '#D90429' }]}>Delete Profile</Text>
             </TouchableOpacity>
-            {/* You can't remove the profile you're currently using */}
-            {activeProfile?.profile_id !== profile.profile_id && (
-              <>
-                <View style={styles.divider} />
-                <TouchableOpacity style={styles.dropdownItem} onPress={handleDelete}>
-                  <Ionicons name="trash-outline" size={18} color="#D90429" style={{ marginRight: 10 }} />
-                  <Text style={[styles.dropdownText, { color: '#D90429' }]}>Remove Profile</Text>
-                </TouchableOpacity>
-              </>
-            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -187,9 +185,9 @@ export default function ProfileDetailScreen() {
               <Ionicons name="trash-outline" size={28} color="#D90429" />
             </View>
 
-            <Text style={styles.dialogTitle}>Remove this profile?</Text>
+            <Text style={styles.dialogTitle}>Delete this profile?</Text>
             <Text style={styles.dialogMsg}>
-              Are you sure you want to remove {profile.profile_fullname}'s profile? Her medicines, alerts and reminders will also be deleted.
+              Are you sure you want to delete {profile.profile_fullname}'s profile? Their medicines, alerts and reminders will also be deleted.
             </Text>
 
             <View style={styles.dialogActions}>
@@ -204,7 +202,7 @@ export default function ProfileDetailScreen() {
                 style={styles.confirmBtn}
                 onPress={handleConfirmDelete}
               >
-                <Text style={styles.confirmBtnText}>Remove</Text>
+                <Text style={styles.confirmBtnText}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -16,7 +15,9 @@ import {
 } from 'react-native';
 import AvatarPickerSheet from '../components/AvatarPickerSheet';
 import ProfileAvatar from '../components/ProfileAvatar';
+import ReminderDialog from '../components/ReminderDialog';
 import { useProfile } from '../context/ProfileContext';
+import { fromApiDate, maskDate, toApiDate } from '../lib/validation';
 
 export default function AddEditProfileScreen() {
   const router = useRouter();
@@ -36,28 +37,45 @@ export default function AddEditProfileScreen() {
   const [iconId, setIconId] = useState(1);
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Required-field reminder popup + which fields to outline in red
+  const [missing, setMissing] = useState<string[]>([]);
+  const [badDate, setBadDate] = useState(false);
+  const [reminder, setReminder] = useState<{ title: string; message: string; items?: string[] } | null>(null);
 
    useEffect(() => {
     if (isEdit && existingProfile) {
       setFullname(existingProfile.profile_fullname);
       setDisplayName(existingProfile.profile_display_name || '');   // ← now one line
-      setBirthdate(existingProfile.profile_birthdate);
+      setBirthdate(fromApiDate(existingProfile.profile_birthdate)); // "2004-02-26" -> "02/26/2004"
       setIconId(existingProfile.profile_icon || 1);
     }
   }, [isEdit, existingProfile]);
   
-    // Validation: All fields with asterisks (*) are required
+  // Validation: All fields with asterisks (*) are required
   const handleSave = async () => {
-    if (!fullname.trim()) {
-      Alert.alert('Required Field', 'Please enter Full Name.');
+    const empty: string[] = [];
+    if (!fullname.trim()) empty.push('Full Name');
+    if (!displayName.trim()) empty.push('Nickname / Display Name');
+    if (!birthdate.trim()) empty.push('Date of Birth');
+    setMissing(empty);
+    if (empty.length) {
+      setBadDate(false);
+      setReminder({
+        title: 'Required fields',
+        message: 'Please fill out the following before saving:',
+        items: empty,
+      });
       return;
     }
-    if (!displayName.trim()) {
-      Alert.alert('Required Field', 'Please enter Nickname / Display Name.');
-      return;
-    }
-    if (!birthdate.trim()) {
-      Alert.alert('Required Field', 'Please enter Date of Birth.');
+
+    // Date of Birth: numbers only, MM/DD/YYYY -> sent to backend as YYYY-MM-DD
+    const apiBirthdate = toApiDate(birthdate);
+    setBadDate(!apiBirthdate);
+    if (!apiBirthdate) {
+      setReminder({
+        title: 'Invalid date of birth',
+        message: 'Please enter the date of birth in numbers as MM/DD/YYYY (e.g. 02/26/2004).',
+      });
       return;
     }
 
@@ -67,7 +85,7 @@ export default function AddEditProfileScreen() {
         await updateProfile(existingProfile.profile_id, {
           profile_fullname: fullname.trim(),
           profile_display_name: displayName.trim(),
-          profile_birthdate: birthdate.trim(),
+          profile_birthdate: apiBirthdate,
           profile_icon: iconId,
         });
       } else {
@@ -75,12 +93,12 @@ export default function AddEditProfileScreen() {
           profile_icon: iconId,
           profile_fullname: fullname.trim(),
           profile_display_name: displayName.trim(),
-          profile_birthdate: birthdate.trim(),
+          profile_birthdate: apiBirthdate,
         });
       }
       router.back();
     } catch (e) {
-      Alert.alert('Not saved', e instanceof Error ? e.message : 'Please try again.');
+      setReminder({ title: 'Not saved', message: e instanceof Error ? e.message : 'Please try again.' });
     } finally {
       setSaving(false);
     }
@@ -127,33 +145,47 @@ export default function AddEditProfileScreen() {
               Full Name <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, missing.includes('Full Name') && styles.inputInvalid]}
               placeholder="e.g. Maria Batumbakal"
               placeholderTextColor="#A0AEC0"
+              autoCapitalize="words"
               value={fullname}
-              onChangeText={setFullname}
+              onChangeText={(t) => {
+                setFullname(t);
+                setMissing((m) => m.filter((f) => f !== 'Full Name'));
+              }}
             />
 
             <Text style={styles.label}>
               Nickname / Display Name <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, missing.includes('Nickname / Display Name') && styles.inputInvalid]}
               placeholder="e.g. Me, Mama, Papa"
               placeholderTextColor="#A0AEC0"
+              autoCapitalize="words"
               value={displayName}
-              onChangeText={setDisplayName}
+              onChangeText={(t) => {
+                setDisplayName(t);
+                setMissing((m) => m.filter((f) => f !== 'Nickname / Display Name'));
+              }}
             />
 
             <Text style={styles.label}>
-              Date of Birth <Text style={styles.required}>*</Text>
+              Date of Birth (MM/DD/YYYY) <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
-              placeholder="e.g. 2004-11-26 or January 1, 2006"
+              style={[styles.input, (missing.includes('Date of Birth') || badDate) && styles.inputInvalid]}
+              placeholder="MM/DD/YYYY"
               placeholderTextColor="#A0AEC0"
+              keyboardType="number-pad"
+              maxLength={10}
               value={birthdate}
-              onChangeText={setBirthdate}
+              onChangeText={(t) => {
+                setBirthdate(maskDate(t)); // numbers only, slashes added automatically
+                setBadDate(false);
+                setMissing((m) => m.filter((f) => f !== 'Date of Birth'));
+              }}
             />
           </View>
 
@@ -170,6 +202,15 @@ export default function AddEditProfileScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Required-field reminder popup */}
+      <ReminderDialog
+        visible={!!reminder}
+        title={reminder?.title ?? ''}
+        message={reminder?.message ?? ''}
+        items={reminder?.items}
+        onClose={() => setReminder(null)}
+      />
 
       {/* Shared AvatarPickerSheet (Identical to Create Profile) */}
       <AvatarPickerSheet
@@ -240,6 +281,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     backgroundColor: '#FAFAFA',
   },
+  inputInvalid: { borderColor: '#E53E3E', borderWidth: 1.5 },
   saveBtn: {
     backgroundColor: '#0E3326',
     height: 50,
