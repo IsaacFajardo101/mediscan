@@ -1,0 +1,8 @@
+{
+    "header": {
+        "success": true,
+        "code": 200,
+        "message": "No medicine found matching the criteria."
+    },
+    "data": []
+}

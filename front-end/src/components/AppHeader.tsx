@@ -9,18 +9,20 @@ import { useMenu } from './MenuContext';
 
 type Props = {
   title: string;
-  showLogo?: boolean; // Home screen and upper tabs: burger + logo (left) + bell (right)
-  back?: boolean;     // Here yung back arrow, no bell, title centered. (for screens that are not the home screen)
+  showLogo?: boolean;    // Home screen and upper tabs: burger + logo (left) + bell (right)
+  back?: boolean;        // Here yung back arrow, no bell, title centered. (for screens that are not the home screen)
+  backToMenu?: boolean;  // Back arrow also reopens the hamburger menu (for screens opened from the menu)
 };
 
 // Itong AppHeader is the top bar of the app. It shows either yung logo or yung title, and either a back arrow or a burger menu.
-export default function AppHeader({ title, showLogo, back }: Props) {
+export default function AppHeader({ title, showLogo, back, backToMenu }: Props) {
   const router = useRouter();
   const { openMenu } = useMenu();
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
     else router.navigate('/' as any);
+    if (backToMenu) openMenu(); // return to the hamburger menu
   };
 
   return (
@@ -28,11 +30,23 @@ export default function AppHeader({ title, showLogo, back }: Props) {
       <View style={styles.row}>
         {/* ito yung left side: back arrow or burger menu */}
         {back ? (
-          <Pressable style={styles.side} onPress={goBack} hitSlop={12} accessibilityLabel="Go back">
+          <Pressable
+            style={styles.side}
+            onPress={goBack}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Ionicons name="arrow-back" size={26} color={Colors.text} />
           </Pressable>
         ) : (
-          <Pressable style={styles.side} onPress={openMenu} hitSlop={12} accessibilityLabel="Open menu">
+          <Pressable
+            style={styles.side}
+            onPress={openMenu}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Open menu"
+          >
             <Ionicons name="menu" size={28} color={Colors.text} />
           </Pressable>
         )}
@@ -42,7 +56,12 @@ export default function AppHeader({ title, showLogo, back }: Props) {
           {showLogo ? (
             <Logo size={34} withText />
           ) : (
-            <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+            <Text
+              style={styles.title}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               {title}
             </Text>
           )}
@@ -58,7 +77,11 @@ export default function AppHeader({ title, showLogo, back }: Props) {
             hitSlop={12}
             accessibilityLabel="Notifications"
           >
-            <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={Colors.text}
+            />
           </Pressable>
         )}
       </View>

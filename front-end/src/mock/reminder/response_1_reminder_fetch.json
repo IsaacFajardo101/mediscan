@@ -1,0 +1,38 @@
+{
+    "header": {
+        "success": true,
+        "code": 200,
+        "message": "Schedules retrieved successfully."
+    },
+    "data": [
+        {
+            "schedule_id": 1,
+            "profile_id": "PROF123456789012",
+            "fda_registration_id": "BR-1005",
+            "sched_is_active": true,
+            "sched_frequency_type": "Daily",
+            "sched_reminder_time": [
+                "08:00:00",
+                "20:00:00"
+            ],
+            "sched_start_date": "2026-10-22",
+            "sched_end_date": "2026-11-05",
+            "sched_notes": "Take immediately after meals.",
+            "sched_created_at": "2026-10-22T05:30:00Z",
+            "sched_updated_at": "2026-10-22T05:30:00Z"
+        },
+        {
+            "schedule_id": 2,
+            "profile_id": "PROF123456789012",
+            "fda_registration_id": "BR-1004",
+            "sched_is_active": false,
+            "sched_frequency_type": "As Needed",
+            "sched_reminder_time": [], 
+            "sched_start_date": "2026-09-01",
+            "sched_end_date": null,
+            "sched_notes": "Take only when experiencing severe headache.",
+            "sched_created_at": "2026-09-01T10:15:00Z",
+            "sched_updated_at": "2026-09-05T14:20:00Z"
+        }
+    ]
+}
