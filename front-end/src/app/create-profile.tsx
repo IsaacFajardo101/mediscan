@@ -8,6 +8,7 @@ import AuthInput from '@/components/AuthInput';
 import AvatarPickerSheet from '@/components/AvatarPickerSheet';
 import FormError from '@/components/FormError';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import ReminderDialog from '@/components/ReminderDialog';
 import { MockAuth } from '@/mock/mockAuth';
 import { maskDate, toApiDate } from '@/lib/validation';
 import { Colors, Radius, Spacing } from '@/constants/display';
@@ -15,7 +16,7 @@ import { Colors, Radius, Spacing } from '@/constants/display';
 // Two uses:
 //  - "Create Profile"     -> first profile of a new account (no profiles yet). After saving -> Home.
 //  - "Add Family Member"  -> from the "+ Add" tile (?mode=add). After saving -> back to Choose Profile.
-// Fields: avatar, Full Name (required), Nickname / Display Name, Date of Birth.
+// Fields: avatar, Full Name *, Nickname / Display Name *, Date of Birth * (MM/DD/YYYY). All required.
 // CHANGES: wala nang Relationship (Display Name na lagi), wala ring Allergies (wala sa backend).
 export default function CreateProfileScreen() {
   const router = useRouter();
@@ -31,6 +32,10 @@ export default function CreateProfileScreen() {
   const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Required-field reminder popup + which fields to outline in red
+  const [missing, setMissing] = useState<string[]>([]);
+  const [badDate, setBadDate] = useState(false);
+  const [reminder, setReminder] = useState<{ title: string; message: string; items?: string[] } | null>(null);
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
@@ -44,16 +49,38 @@ export default function CreateProfileScreen() {
   const onSave = async () => {
     setError(null);
     const name = fullName.trim();
-    if (!name) return setError('Please enter a full name.');
+    const nickname = displayName.trim();
+
+    // 1) Every field is required
+    const empty: string[] = [];
+    if (!name) empty.push('Full Name');
+    if (!nickname) empty.push('Nickname / Display Name');
+    if (!dob.trim()) empty.push('Date of Birth');
+    setMissing(empty);
+    if (empty.length) {
+      setBadDate(false);
+      return setReminder({
+        title: 'Required fields',
+        message: 'Please fill out the following before saving:',
+        items: empty,
+      });
+    }
+
+    // 2) Date of Birth must be a real past date in MM/DD/YYYY
     const birthdate = toApiDate(dob);
-    if (!birthdate) return setError('Please enter a valid date of birth (MM/DD/YYYY).');
+    setBadDate(!birthdate);
+    if (!birthdate) {
+      return setReminder({
+        title: 'Invalid date of birth',
+        message: 'Please enter the date of birth in numbers as MM/DD/YYYY (e.g. 02/26/2004).',
+      });
+    }
 
     setLoading(true);
     const res = await MockAuth.addProfile({
       profile_icon: icon,
       profile_fullname: name,
-      // Display name is always shown. If left blank, use the first name.
-      profile_display_name: displayName.trim() || name.split(' ')[0],
+      profile_display_name: nickname,
       profile_birthdate: birthdate,
     });
     setLoading(false);
@@ -82,7 +109,7 @@ export default function CreateProfileScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
         {isFirst ? (
           <>
-            <Text style={styles.title}>Let's set up your profile</Text>
+            <Text style={styles.title}>Let&apos;s set up your profile</Text>
             <Text style={styles.subtitle}>This will be the first profile on MediScan. You can add family members later.</Text>
           </>
         ) : null}
@@ -101,25 +128,41 @@ export default function CreateProfileScreen() {
         <FormError message={error} />
 
         <AuthInput
-          label="Full Name *"
+          label="Full Name"
+          required
+          invalid={missing.includes('Full Name')}
           placeholder="e.g. Maria Batumbakal"
           autoCapitalize="words"
           value={fullName}
-          onChangeText={setFullName}
+          onChangeText={(t) => {
+            setFullName(t);
+            setMissing((m) => m.filter((f) => f !== 'Full Name'));
+          }}
         />
         <AuthInput
           label="Nickname / Display Name"
+          required
+          invalid={missing.includes('Nickname / Display Name')}
           placeholder="e.g. Me, Mama, Papa"
           autoCapitalize="words"
           value={displayName}
-          onChangeText={setDisplayName}
+          onChangeText={(t) => {
+            setDisplayName(t);
+            setMissing((m) => m.filter((f) => f !== 'Nickname / Display Name'));
+          }}
         />
         <AuthInput
-          label="Date of Birth"
-          placeholder="MM / DD / YYYY"
+          label="Date of Birth (MM/DD/YYYY)"
+          required
+          invalid={missing.includes('Date of Birth') || badDate}
+          placeholder="MM/DD/YYYY"
           keyboardType="number-pad"
           value={dob}
-          onChangeText={(t) => setDob(maskDate(t))}
+          onChangeText={(t) => {
+            setDob(maskDate(t));
+            setBadDate(false);
+            setMissing((m) => m.filter((f) => f !== 'Date of Birth'));
+          }}
           maxLength={10}
         />
 
@@ -139,6 +182,14 @@ export default function CreateProfileScreen() {
           )}
         </Pressable>
       </ScrollView>
+
+      <ReminderDialog
+        visible={!!reminder}
+        title={reminder?.title ?? ''}
+        message={reminder?.message ?? ''}
+        items={reminder?.items}
+        onClose={() => setReminder(null)}
+      />
 
       <AvatarPickerSheet
         visible={pickerOpen}

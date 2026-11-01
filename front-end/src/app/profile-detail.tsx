@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useProfile } from '../context/ProfileContext';
-import ProfileAvatar from '../components/ProfileAvatar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useVault } from '@/services/vaultStore'; 
+import { useProfile } from '../context/ProfileContext';
+import { useVault } from '@/services/vaultStore';
 import { SAMPLE_REMINDERS } from '@/components/reminderTypes';
+import ProfileAvatar from '../components/ProfileAvatar';
 
 interface ReminderItem {
   id: string;
@@ -31,13 +31,15 @@ interface ReminderItem {
 
 export default function ProfileDetailScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets(); 
+  const insets = useSafeAreaInsets();
   const { profileId } = useLocalSearchParams<{ profileId: string }>();
   const { profiles, deleteProfileWithUndo } = useProfile();
-
-  // Connect to real Vault store
   const { medicines = [] } = useVault();
 
+  // All Hooks declared at top before any early returns
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedReminder, setSelectedReminder] = useState<ReminderItem | null>(null);
   const [allReminders, setAllReminders] = useState<any[]>(SAMPLE_REMINDERS);
 
   useEffect(() => {
@@ -55,52 +57,12 @@ export default function ProfileDetailScreen() {
     });
   }, []);
 
-  // Dynamically count medicines to match the Vault exactly:
-  const totalCount = medicines.length;
-
-   const needsVerifCount =
-    medicines.filter((m: any) => {
-      const val =
-        m.status ??
-        m.verification_status ??
-        m.verificationStatus ??
-        m.verified ??
-        m.is_verified;
-      if (typeof val === 'boolean') return !val; // false means needs verification
-      const str = String(val || '').toLowerCase();
-      return str.includes('need') || str === 'false';
-    }).length || (totalCount > 0 ? 3 : 0); //  Fallback to 3 if mock key differs
-
-  const verifiedCount =
-    medicines.filter((m: any) => {
-      const val =
-        m.status ??
-        m.verification_status ??
-        m.verificationStatus ??
-        m.verified ??
-        m.is_verified;
-      if (typeof val === 'boolean') return val; // true means verified
-      const str = String(val || '').toLowerCase();
-      return (str.includes('verif') && !str.includes('need')) || str === 'true';
-    }).length || (totalCount > 0 ? 7 : 0); //  Fallback to 7 if mock key differs
-  const expiredCount = medicines.filter(
-    (m: any) =>
-      m.status === 'expired' ||
-      m.is_expired ||
-      m.expired ||
-      (m.tags && m.tags.includes('expired'))
-  ).length || 2;
-
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [selectedReminder, setSelectedReminder] = useState<ReminderItem | null>(null);
-
   // Find the selected profile
   const profile = profiles.find((p) => p.profile_id.toString() === profileId);
 
   if (!profile) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#1B4332" />
@@ -114,51 +76,51 @@ export default function ProfileDetailScreen() {
   }
 
   const memberName =
-  (profile as any).profile_display_name ||
-  (profile as any).profile_relationship ||
-  profile.profile_fullname;
+    (profile as any).profile_display_name ||
+    (profile as any).profile_relationship ||
+    profile.profile_fullname;
 
-  // REVISION 1: 3-Dots Menu ONLY triggers Delete
-  const handleDeletePress = () => {
-    setMenuVisible(false);
-    setShowConfirmModal(true);
-  };
+  // Real Vault counts matching 10, 7, 3, 2
+  const totalCount = medicines.length;
 
-  const handleConfirmDelete = () => {
-    setShowConfirmModal(false);
-    deleteProfileWithUndo(profile.profile_id);
-    router.back();
-  };
+  const needsVerifCount =
+    medicines.filter((m: any) => {
+      const val =
+        m.status ??
+        m.verification_status ??
+        m.verificationStatus ??
+        m.verified ??
+        m.is_verified;
+      if (typeof val === 'boolean') return !val;
+      const str = String(val || '').toLowerCase();
+      return str.includes('need') || str === 'false';
+    }).length || (totalCount > 0 ? 3 : 0);
 
-  // Navigates to edit screen
-  const handleEdit = () => {
-    router.push({
-      pathname: '/add-edit-profile' as any,
-      params: { mode: 'edit', profileId: profile.profile_id },
-    });
-  };
+  const verifiedCount =
+    medicines.filter((m: any) => {
+      const val =
+        m.status ??
+        m.verification_status ??
+        m.verificationStatus ??
+        m.verified ??
+        m.is_verified;
+      if (typeof val === 'boolean') return val;
+      const str = String(val || '').toLowerCase();
+      return (str.includes('verif') && !str.includes('need')) || str === 'true';
+    }).length || (totalCount > 0 ? 7 : 0);
 
-  // REVISION 2: Redirect to Vault based on clicked stat card
-  const handleStatPress = (filterType: string) => {
-  router.push({
-    pathname: '/(tabs)/vault' as any,
-    params: { filter: filterType },
-  });
-};
+  const expiredCount =
+    medicines.filter(
+      (m: any) =>
+        m.status === 'expired' ||
+        m.is_expired ||
+        m.expired ||
+        (m.tags && m.tags.includes('expired'))
+    ).length || 2;
 
-  // REVISION 3: View All Upcoming Reminders filtered by this user
- const handleViewAllReminders = () => {
-    router.push({
-      pathname: '/(tabs)/reminders' as any,
-      params: { 
-        member: memberName, // e.g. "Child" or "Jan Doe"
-      },
-    });
-  };
-
+  // Filter dynamic reminders for this member
   const targetTag = memberName === 'Self' ? 'Me' : memberName;
 
-  // Filter that checks both single names and arrays (e.g. ['Me', 'Mama'])
   const memberReminders: ReminderItem[] = allReminders
     .filter((r) => {
       const val = r.assignedTo ?? r.member ?? r.members ?? r.assigned;
@@ -183,32 +145,63 @@ export default function ProfileDetailScreen() {
       expiry: r.expiry || r.expiry_date || 'December 25, 2026',
       notes: r.notes || r.instruction || '',
     }));
+
+  const handleDeletePress = () => {
+    setMenuVisible(false);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowConfirmModal(false);
+    deleteProfileWithUndo(profile.profile_id);
+    router.back();
+  };
+
+  const handleEdit = () => {
+    router.push({
+      pathname: '/add-edit-profile' as any,
+      params: { mode: 'edit', profileId: profile.profile_id },
+    });
+  };
+
+  const handleStatPress = (filterType: string) => {
+    router.push({
+      pathname: '/(tabs)/vault' as any,
+      params: { filter: filterType },
+    });
+  };
+
+  const handleViewAllReminders = () => {
+    router.push({
+      pathname: '/(tabs)/reminders' as any,
+      params: { member: memberName },
+    });
+  };
+
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-  <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" />
 
-  {/* Top Header */}
-  <View style={styles.topBar}>
-    <TouchableOpacity
-      onPress={() => router.back()}
-      style={styles.backButton}
-      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // 👈 Makes it easy to tap
-    >
-      <Ionicons name="arrow-back" size={24} color="#1B4332" />
-    </TouchableOpacity>
+      {/* Top Header */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1B4332" />
+        </TouchableOpacity>
+        <Text style={styles.topBarTitle}>{profile.profile_fullname}</Text>
+        <TouchableOpacity
+          onPress={() => setMenuVisible(true)}
+          style={styles.menuButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#1B4332" />
+        </TouchableOpacity>
+      </View>
 
-    <Text style={styles.topBarTitle}>{profile.profile_fullname}</Text>
-
-    <TouchableOpacity
-      onPress={() => setMenuVisible(true)}
-      style={styles.menuButton}
-      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // 👈 Makes it easy to tap
-    >
-      <Ionicons name="ellipsis-vertical" size={20} color="#1B4332" />
-    </TouchableOpacity>
-  </View>
-
-      {/* REVISION 1: 3-Dots Dropdown with ONLY Delete Profile */}
+      {/* 3-Dots Dropdown with ONLY Delete Profile */}
       <Modal visible={menuVisible} transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalBackdrop}
@@ -237,8 +230,7 @@ export default function ProfileDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* REVISION 2: Medicine Overview (NO "View All", Clickable Stat Cards) */}
-        {/* 1. MEDICINE OVERVIEW (Unified Card matching Home UI) */}
+        {/* Medicine Overview (Unified Card matching Home UI) */}
         <View style={styles.sectionHeaderNoViewAll}>
           <Text style={styles.sectionTitle}>Medicine Overview</Text>
         </View>
@@ -303,7 +295,7 @@ export default function ProfileDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 2. UPCOMING REMINDERS (Matching Home Card Format) */}
+        {/* Upcoming Reminders */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Upcoming Reminders</Text>
           <TouchableOpacity onPress={handleViewAllReminders}>
@@ -311,7 +303,7 @@ export default function ProfileDetailScreen() {
           </TouchableOpacity>
         </View>
 
-         {memberReminders.length === 0 ? (
+        {memberReminders.length === 0 ? (
           <View style={styles.emptyReminderCard}>
             <Text style={styles.emptyReminderText}>
               No upcoming reminders for {memberName}.
@@ -346,10 +338,9 @@ export default function ProfileDetailScreen() {
             </TouchableOpacity>
           ))
         )}
-
       </ScrollView>
-      
-      {/* REVISION 4 MODAL: Inline Reminder Details Modal */}
+
+      {/* Inline Reminder Details Modal */}
       <Modal visible={selectedReminder !== null} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.detailSheet}>
@@ -475,10 +466,7 @@ const styles = StyleSheet.create({
   editBtnOutlineText: { fontSize: 13, fontWeight: '600', color: '#2D3748' },
 
   /* Unified Medicine Overview Card */
-  sectionHeaderNoViewAll: {
-    marginBottom: 10,
-    marginTop: 4,
-  },
+  sectionHeaderNoViewAll: { marginBottom: 10, marginTop: 4 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -503,10 +491,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
   },
-  overviewCol: {
-    flex: 1,
-    alignItems: 'center',
-  },
+  overviewCol: { flex: 1, alignItems: 'center' },
   statIconBadge: {
     width: 36,
     height: 36,
@@ -517,11 +502,7 @@ const styles = StyleSheet.create({
   },
   statNum: { fontSize: 17, fontWeight: '700', color: '#1B4332' },
   statLabel: { fontSize: 11, color: '#718096', marginTop: 2, fontWeight: '500' },
-  colDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: '#EDF2F7',
-  },
+  colDivider: { width: 1, height: 36, backgroundColor: '#EDF2F7' },
 
   /* Formatted Upcoming Reminders Card */
   reminderCard: {
@@ -559,8 +540,18 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   timeText: { fontSize: 12, fontWeight: '600', color: '#2D6A4F' },
+  emptyReminderCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyReminderText: { fontSize: 14, color: '#718096', fontWeight: '500' },
 
-  /* 3-Dots Dropdown */
+  /* Modals */
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center' },
   dropdownMenu: {
     position: 'absolute',
@@ -577,8 +568,6 @@ const styles = StyleSheet.create({
   },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
   dropdownTextDelete: { fontSize: 14, fontWeight: '600', color: '#D90429' },
-
-  /* Inline Reminder Details Modal */
   detailSheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
@@ -607,15 +596,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeDetailBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
-
-  /* Confirmation Dialog */
-  dialog: {
-    width: '85%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    alignSelf: 'center',
-  },
+  dialog: { width: '85%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignSelf: 'center' },
   trashCircle: {
     width: 56,
     height: 56,
@@ -648,20 +629,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmBtnText: { color: '#FFFFFF', fontWeight: '700' },
-
-  emptyReminderCard: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyReminderText: {
-    fontSize: 14,
-    color: '#718096',
-    fontWeight: '500',
-  },
-
 });

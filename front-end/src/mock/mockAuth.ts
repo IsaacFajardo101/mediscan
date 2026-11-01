@@ -17,16 +17,12 @@ import verifyResponse from './json/verify-code.response.json';
 import fetchProfilesResponse from './json/fetch-profiles.response.json';
 import addProfileResponse from './json/add-profile.response.json';
 
+import type { AddProfileRequest, EditProfileRequest, Profile } from '@/types/profile';
+
 // ---- Shapes (same as the Mockdata JSON) ----
-// CHANGE: profile_display_name -> profile_display_name (display name na lagi)
-export type Profile = {
-  profile_id: number;
-  profile_icon: number;
-  profile_fullname: string;
-  profile_display_name: string;
-  profile_birthdate: string; // YYYY-MM-DD
-};
-export type NewProfile = Omit<Profile, 'profile_id'>;
+// Profile shape lives in src/types/profile.ts. Re-exported here so old imports still work.
+export type { Profile };
+export type NewProfile = AddProfileRequest;
 export type Session = { session_token: string; session_expire_at: string };
 export type Result<T = undefined> = { success: boolean; code: number; message: string; data?: T };
 
@@ -52,6 +48,26 @@ let currentEmail: string | null = null;
 let activeProfile: Profile | null = null;
 let savedLogin: { email: string; password: string } | null = null; // "Save your login info?" -> Yes
 
+// ---- Change listeners ----
+// ProfileContext subscribes here, so every screen updates on login,
+// profile selection, edit or delete.
+export type AuthSnapshot = {
+  email: string | null;
+  profiles: Profile[];
+  activeProfile: Profile | null;
+};
+const listeners = new Set<() => void>();
+const buildSnapshot = (): AuthSnapshot => ({
+  email: session ? currentEmail : null,
+  profiles: session && currentEmail ? [...accounts[currentEmail].profiles] : [],
+  activeProfile: session ? activeProfile : null,
+});
+let snapshot: AuthSnapshot = buildSnapshot();
+const emit = () => {
+  snapshot = buildSnapshot();
+  listeners.forEach((l) => l());
+};
+
 const wait = () => new Promise((r) => setTimeout(r, 500)); // para may loading
 const norm = (e: string) => e.trim().toLowerCase();
 const fail = (code: number, message: string): Result<any> => ({ success: false, code, message });
@@ -70,6 +86,7 @@ export const MockAuth = {
     session = newSession();
     currentEmail = acc.email;
     activeProfile = null;
+    emit();
     return { ...loginResponse, data: session };
   },
 
@@ -101,6 +118,7 @@ export const MockAuth = {
     session = newSession();
     currentEmail = acc.email;
     activeProfile = null;
+    emit();
     return { ...verifyResponse, data: session };
   },
 
@@ -115,21 +133,61 @@ export const MockAuth = {
     if (!session || !currentEmail) return fail(401, 'Session expired. Please log in again.');
     const profile: Profile = { ...p, profile_id: ++nextId };
     accounts[currentEmail].profiles.push(profile);
+    emit();
     return { ...addProfileResponse, data: profile };
+  },
+
+  // PUT /api/v1/accounts/me/profiles/{profileId}
+  async updateProfile(profileId: number, changes: EditProfileRequest): Promise<Result<Profile>> {
+    await wait();
+    if (!session || !currentEmail) return fail(401, 'Session expired. Please log in again.');
+    const list = accounts[currentEmail].profiles;
+    const i = list.findIndex((p) => p.profile_id === profileId);
+    if (i === -1) return fail(404, 'Profile not found.');
+    // New object (not mutate) so React sees the change
+    list[i] = { ...list[i], ...changes };
+    if (activeProfile?.profile_id === profileId) activeProfile = list[i];
+    emit();
+    return { success: true, code: 200, message: 'Profile updated successfully.', data: list[i] };
+  },
+
+  // DELETE /api/v1/accounts/me/profiles/{profileId}
+  // ProfileContext calls this only after the 15-second undo window.
+  async deleteProfile(profileId: number): Promise<Result> {
+    await wait();
+    if (!session || !currentEmail) return fail(401, 'Session expired. Please log in again.');
+    if (activeProfile?.profile_id === profileId) return fail(409, 'You cannot remove the profile you are using.');
+    const acc = accounts[currentEmail];
+    if (!acc.profiles.some((p) => p.profile_id === profileId)) return fail(404, 'Profile not found.');
+    acc.profiles = acc.profiles.filter((p) => p.profile_id !== profileId);
+    emit();
+    return { success: true, code: 200, message: 'Profile deleted successfully.' };
   },
 
   selectProfile(p: Profile) {
     activeProfile = p;
+    emit();
   },
   getActiveProfile: () => activeProfile,
+  getEmail: () => (session ? currentEmail : null),
   isLoggedIn: () => !!session,
 
   logout() {
     session = null;
     currentEmail = null;
     activeProfile = null;
+    emit();
   },
 
+    // ---------- Subscribe (used by ProfileContext via useSyncExternalStore) ----------
+  subscribe(listener: () => void) {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  },
+  getSnapshot: () => snapshot,
+  
   // ---------- Saved login info (auto-fill) ----------
   getSavedLogin: () => savedLogin,
   saveLogin(email: string, password: string) {

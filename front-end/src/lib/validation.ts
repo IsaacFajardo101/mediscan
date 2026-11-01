@@ -22,3 +22,13 @@ export function toApiDate(mmddyyyy: string): string | null {
   if (!real || date > new Date() || Number(yyyy) < 1900) return null;
   return `${yyyy}-${mm}-${dd}`;
 }
+
+// "YYYY-MM-DD" (backend format) -> "MM/DD/YYYY" (what the user sees and types everywhere).
+// Anything that isn't in backend format is returned as-is.
+export function fromApiDate(apiDate: string | null | undefined): string {
+  if (!apiDate) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(apiDate.trim());
+  if (!m) return apiDate;
+  const [, yyyy, mm, dd] = m;
+  return `${mm}/${dd}/${yyyy}`;
+}
