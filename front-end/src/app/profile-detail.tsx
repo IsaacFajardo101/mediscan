@@ -67,7 +67,7 @@ export default function ProfileDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" />
 
       {/* Top Header */}
       <View style={styles.topBar}>
@@ -187,7 +187,7 @@ export default function ProfileDetailScreen() {
 
             <Text style={styles.dialogTitle}>Delete this profile?</Text>
             <Text style={styles.dialogMsg}>
-              Are you sure you want to delete {profile.profile_fullname}'s profile? Their medicines, alerts and reminders will also be deleted.
+              Are you sure you want to delete {profile.profile_fullname}&apos;s profile? Their medicines, alerts and reminders will also be deleted.
             </Text>
 
             <View style={styles.dialogActions}>
