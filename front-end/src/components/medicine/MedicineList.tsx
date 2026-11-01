@@ -22,6 +22,7 @@ type Props = {
   scope: ListScope;
   medicines: VaultMedicine[];
   ready: boolean;
+  initialFilter?: string;
 };
 
 const CHIPS: { key: StatusFilter; label: string; icon?: keyof typeof Ionicons.glyphMap; color: string }[] = [
@@ -31,11 +32,31 @@ const CHIPS: { key: StatusFilter; label: string; icon?: keyof typeof Ionicons.gl
   { key: 'expired', label: 'Expired', icon: 'ban-outline', color: Colors.statusDanger },
 ];
 
-export default function MedicineList({ scope, medicines, ready }: Props) {
+export default function MedicineList({ scope, medicines, ready, initialFilter }: Props) {
   const router = useRouter();
   const query = useListQuery(scope);
   const shown = useMemo(() => applyQuery(medicines, query), [medicines, query]);
   const sheetCount = activeSheetFilterCount(query);
+
+    useEffect(() => {
+    if (initialFilter) {
+      const normalized = initialFilter.toLowerCase();
+      let targetStatus: StatusFilter = 'all';
+
+      if (normalized.includes('need')) {
+        targetStatus = 'needs_verification';
+      } else if (normalized.includes('expir')) {
+        targetStatus = 'expired';
+      } else if (normalized.includes('verif')) {
+        targetStatus = 'verified';
+      }
+
+      // 👈 Use setListQuery with scope and status:
+      setListQuery(scope, { status: targetStatus });
+    }
+  }, [initialFilter, scope]);
+
+
 
   // ⋮ menu + delete flow
   const [menu, setMenu] = useState<{ medicine: VaultMedicine; anchor: Anchor } | null>(null);
@@ -222,6 +243,7 @@ function useCountdown(key: string | null): number {
   useEffect(() => {
     if (!key) return;
     const started = Date.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLeft(UNDO_SECONDS);
     const t = setInterval(() => {
       setLeft(Math.max(0, UNDO_SECONDS - Math.floor((Date.now() - started) / 1000)));

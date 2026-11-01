@@ -16,10 +16,12 @@ import {
 } from 'react-native';
 import AvatarPickerSheet from '../components/AvatarPickerSheet';
 import ProfileAvatar from '../components/ProfileAvatar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; 
 import { useProfile } from '../context/ProfileContext';
 
 export default function AddEditProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets(); 
   const params = useLocalSearchParams<{ mode?: string; profileId?: string }>();
   const isEdit = params.mode === 'edit';
 
@@ -38,14 +40,16 @@ export default function AddEditProfileScreen() {
 
   useEffect(() => {
     if (isEdit && existingProfile) {
-      setFullname(existingProfile.profile_fullname);
-      setDisplayName(
-        (existingProfile as any).profile_display_name ||
-        existingProfile.profile_display_name ||
-        ''
-      );
-      setBirthdate(existingProfile.profile_birthdate);
-      setIconId(existingProfile.profile_icon || 1);
+      queueMicrotask(() => {
+        setFullname(existingProfile.profile_fullname);
+        setDisplayName(
+          (existingProfile as any).profile_display_name ||
+          (existingProfile as any).profile_relationship ||
+          ''
+        );
+        setBirthdate(existingProfile.profile_birthdate);
+        setIconId(existingProfile.profile_icon || 1);
+      });
     }
   }, [isEdit, existingProfile]);
 
@@ -84,17 +88,23 @@ export default function AddEditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
+      {/* Header with Safe Padded Back Arrow */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={styles.backButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} // 👈 Easy to tap
+        >
           <Ionicons name="arrow-back" size={24} color="#1B4332" />
         </TouchableOpacity>
+
         <Text style={styles.topBarTitle}>
           {isEdit ? 'Edit Profile' : 'Add Family Member'}
         </Text>
+
         <View style={{ width: 24 }} />
       </View>
 
