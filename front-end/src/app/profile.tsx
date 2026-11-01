@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import {
-  Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View,
+  Alert, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
-import { getAvatarSource } from '@/constants/avatars';
 import { useProfile } from '@/context/ProfileContext';
+import AvatarPickerSheet from '@/components/AvatarPickerSheet';
 import DataSync from '@/components/Datasync';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import HealthInfo from '@/components/HealthInfo';
 
 export default function ProfileScreen() {
@@ -57,14 +58,9 @@ export default function ProfileScreen() {
             onPress={() => setPickerOpen(true)}
             accessibilityLabel="Change profile picture"
           >
-            <View style={styles.avatar}>
-              <Image
-                source={getAvatarSource(iconId)}
-                style={{ width: 96, height: 96, borderRadius: 48 }}
-              />
-            </View>
+            <ProfileAvatar icon={iconId} size={96} />
             <View style={styles.editBadge}>
-              <Ionicons name="pencil" size={11} color="#fff" />
+              <Ionicons name="pencil" size={14} color="#fff" />
             </View>
           </Pressable>
           <Text style={styles.fullName}>{profile.profile_fullname}</Text>
@@ -96,43 +92,13 @@ export default function ProfileScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Avatar picker */}
-      <Modal
+      {/* Avatar picker (same sheet as Create Profile / Add-Edit Profile) */}
+      <AvatarPickerSheet
         visible={pickerOpen}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        navigationBarTranslucent
-        onRequestClose={() => setPickerOpen(false)}
-      >
-        <View style={styles.modalBg}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setPickerOpen(false)} />
-          <View style={[styles.pickerBox, { paddingBottom: insets.bottom + Spacing.md }]}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Choose an Avatar</Text>
-              <Pressable onPress={() => setPickerOpen(false)} hitSlop={12}>
-                <Ionicons name="close" size={24} color={Colors.text} />
-              </Pressable>
-            </View>
-            <FlatList
-              data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
-              numColumns={4}
-              keyExtractor={(id) => id.toString()}
-              renderItem={({ item: id }) => (
-                <Pressable
-                  style={[styles.avatarOption, iconId === id && styles.selectedOption]}
-                  onPress={() => chooseAvatar(id)}
-                >
-                  <Image
-                    source={getAvatarSource(id)}
-                    style={{ width: 52, height: 52, borderRadius: 26 }}
-                  />
-                </Pressable>
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
+        selected={iconId}
+        onClose={() => setPickerOpen(false)}
+        onSave={chooseAvatar}
+      />
 
       {/* Health Information sheet (its own component file) */}
       <HealthInfo visible={healthOpen} onClose={() => setHealthOpen(false)} />
@@ -145,14 +111,11 @@ const styles = StyleSheet.create({
 
   identity: { alignItems: 'center', marginTop: Spacing.md, marginBottom: Spacing.lg },
   avatarWrap: { marginBottom: Spacing.sm + 4 },
-  avatar: {
-    width: 96, height: 96, borderRadius: Radius.pill, backgroundColor: Colors.primarySoft,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  // Same pencil badge as Create Profile / Add-Edit Profile
   editBadge: {
-    position: 'absolute', right: 0, bottom: 2, width: 24, height: 24, borderRadius: Radius.pill,
+    position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: Radius.pill,
     backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.background,
+    borderWidth: 2, borderColor: Colors.surface,
   },
   fullName: { fontWeight: '700', color: Colors.text, fontSize: FontSizes.body + 4 },
   email: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
@@ -168,23 +131,4 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   rowText: { flex: 1, color: Colors.text, fontSize: FontSizes.body - 1, fontWeight: '600' },
-
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  pickerBox: {
-    backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, maxHeight: 420,
-  },
-  pickerHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 16,
-  },
-  pickerTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
-  avatarOption: {
-    flex: 1, aspectRatio: 1, margin: 6, borderRadius: 12,
-    backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  selectedOption: {
-    borderWidth: 2.5, borderColor: Colors.primary, backgroundColor: Colors.primarySoft,
-  },
 });
