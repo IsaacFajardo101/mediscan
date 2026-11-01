@@ -10,6 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { overviewCounts } from '@/utils/medicine'; 
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,48 +76,18 @@ export default function ProfileDetailScreen() {
     );
   }
 
+    const counts = overviewCounts(medicines);
+
+  const totalCount = counts.total;
+  const verifiedCount = counts.verified;
+  const needsVerifCount = counts.needsVerification;
+  const expiredCount = counts.expired || counts.expiring;
+  
   const memberName =
-    (profile as any).profile_display_name ||
-    (profile as any).profile_relationship ||
-    profile.profile_fullname;
-
-  // Real Vault counts matching 10, 7, 3, 2
-  const totalCount = medicines.length;
-
-  const needsVerifCount =
-    medicines.filter((m: any) => {
-      const val =
-        m.status ??
-        m.verification_status ??
-        m.verificationStatus ??
-        m.verified ??
-        m.is_verified;
-      if (typeof val === 'boolean') return !val;
-      const str = String(val || '').toLowerCase();
-      return str.includes('need') || str === 'false';
-    }).length || (totalCount > 0 ? 3 : 0);
-
-  const verifiedCount =
-    medicines.filter((m: any) => {
-      const val =
-        m.status ??
-        m.verification_status ??
-        m.verificationStatus ??
-        m.verified ??
-        m.is_verified;
-      if (typeof val === 'boolean') return val;
-      const str = String(val || '').toLowerCase();
-      return (str.includes('verif') && !str.includes('need')) || str === 'true';
-    }).length || (totalCount > 0 ? 7 : 0);
-
-  const expiredCount =
-    medicines.filter(
-      (m: any) =>
-        m.status === 'expired' ||
-        m.is_expired ||
-        m.expired ||
-        (m.tags && m.tags.includes('expired'))
-    ).length || 2;
+    (profile as any)?.profile_display_name ||
+    (profile as any)?.profile_relationship ||
+    profile?.profile_fullname ||
+    '';
 
   // Filter dynamic reminders for this member
   const targetTag = memberName === 'Self' ? 'Me' : memberName;
