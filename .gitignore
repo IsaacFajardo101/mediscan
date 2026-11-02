@@ -13,3 +13,5 @@ __pycache__/
 back-end/app/__pycache__/
 back-end/app/api/responses
 *.pyc
+
+copilot-instructions.md
