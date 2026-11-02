@@ -45,7 +45,6 @@ def _extract_text_sync(image_bytes: bytes) -> str:
     try:
         print(f"Received {len(image_bytes)} bytes")
         raw_results = ocr_model.ocr(img_np)
-        print(f"RAW OCR OUTPUT: {raw_results}")
     except Exception as exc:
         raise OCRProcessingError(
             "PaddleOCR could not extract text from the uploaded image."
@@ -67,7 +66,9 @@ def _extract_text_sync(image_bytes: bytes) -> str:
                 if text and text.strip():
                     text_lines.append(text.strip())
 
-    return "\n".join(text_lines)
+    readable_text = "\n".join(text_lines)
+    print(f"\n--- RAW OCR OUTPUT ---\n{readable_text or 'No text detected'}\n")
+    return readable_text
 
 
 async def extract_text(image_bytes: bytes) -> str:

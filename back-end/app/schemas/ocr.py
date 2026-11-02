@@ -56,6 +56,5 @@ class OCRResponse(BaseModel):
     success: bool
     code: int = Field(ge=100, le=599)
     message: str = Field(min_length=1, max_length=500)
-    raw_text: str
     entities: ExtractedEntityResponse
     suggested_medicines: list[LinkedMedicineResponse] = Field(default_factory=list)
