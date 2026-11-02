@@ -36,10 +36,22 @@ async def extract_label(
         if db is not None
         else None
     )
-    print(
-        "\n--- SUGGESTED MEDICINE ---\n"
-        f"{linked_medicine.model_dump_json() if linked_medicine else 'No match found'}\n"
-    )
+    if linked_medicine:
+        print(
+            "\n--- SUGGESTED MEDICINE ---\n"
+            f"Name: {linked_medicine.fda_brandname or linked_medicine.fda_genericname}\n"
+            f"Dosage: {linked_medicine.fda_dosage_strength or 'Not detected'}\n"
+            f"Accuracy: {linked_medicine.confidence_percentage}% "
+            f"({linked_medicine.confidence_level.upper()})\n"
+            f"Guidance: {linked_medicine.accuracy_guidance}\n"
+        )
+    else:
+        print(
+            "\n--- SUGGESTED MEDICINE ---\n"
+            "No match found\n"
+            "Accuracy: 0% (LOW)\n"
+            "Guidance: Use a clear, well-lit photo showing the full brand or generic name and dosage.\n"
+        )
     return OCRResponse(
         success=True,
         code=status.HTTP_200_OK,

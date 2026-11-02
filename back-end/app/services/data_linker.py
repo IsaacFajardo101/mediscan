@@ -56,7 +56,53 @@ def _dosage_matches(row: Mapping[str, object], dosage: str | None) -> bool:
     return any(expected in value.casefold() or value.casefold() in expected for value in values)
 
 
-def _to_response(row: Mapping[str, object], dosage_match: bool) -> LinkedMedicineResponse:
+def _normalized(value: object) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", str(value or "").casefold()))
+
+
+def _confidence(
+    row: Mapping[str, object],
+    medicine_name: str | None,
+    dosage_match: bool,
+    matched_keywords: int,
+    keyword_count: int,
+) -> tuple[int, str, str]:
+    extracted_name = _normalized(medicine_name)
+    brand = _normalized(_row_value(row, "fda_brandname"))
+    generic = _normalized(_row_value(row, "fda_genericname"))
+    all_keywords_match = keyword_count > 0 and matched_keywords == keyword_count
+    exact_name = (
+        bool(extracted_name)
+        and (extracted_name in {brand, generic} or (all_keywords_match and dosage_match))
+    )
+
+    if exact_name and dosage_match:
+        return 100, "max", "Exact medicine name and dosage match."
+    if exact_name:
+        return 95, "high", "The medicine name matches exactly. A clearer photo of the dosage can confirm the result."
+    if all_keywords_match and dosage_match:
+        return 90, "high", "The brand or generic name and dosage are strong matches."
+    if all_keywords_match:
+        return 80, "medium", "The name is a strong match. Include a sharper photo of the dosage or strength for higher accuracy."
+    if dosage_match:
+        return 65, "medium", "The dosage matches, but the medicine name is partial. Capture the brand or generic name clearly."
+    return 45, "low", "Use a clearer, well-lit photo showing the full brand or generic name and dosage."
+
+
+def _to_response(
+    row: Mapping[str, object],
+    medicine_name: str | None,
+    dosage_match: bool,
+    matched_keywords: int,
+    keyword_count: int,
+) -> LinkedMedicineResponse:
+    confidence_percentage, confidence_level, accuracy_guidance = _confidence(
+        row,
+        medicine_name,
+        dosage_match,
+        matched_keywords,
+        keyword_count,
+    )
     return LinkedMedicineResponse(
         fda_id=int(_row_value(row, "fda_id")),
         fda_registration_id=str(_row_value(row, "fda_registration_id") or ""),
@@ -68,8 +114,11 @@ def _to_response(row: Mapping[str, object], dosage_match: bool) -> LinkedMedicin
         fda_manufacturer=_row_value(row, "fda_manufacturer"),
         fda_pharmacologic_category=_row_value(row, "fda_pharmacologic_category"),
         fda_classification=_row_value(row, "fda_classification"),
-        match_type="exact" if dosage_match else "fuzzy",
-        match_score=1.0 if dosage_match else 0.75,
+        match_type="exact" if confidence_percentage == 100 else "fuzzy",
+        match_score=confidence_percentage / 100,
+        confidence_percentage=confidence_percentage,
+        confidence_level=confidence_level,
+        accuracy_guidance=accuracy_guidance,
     )
 
 
@@ -104,4 +153,16 @@ async def link_medicine_record(
         return (_dosage_matches(row, extracted_data.dosage), matched_keywords)
 
     best_row = max(rows, key=rank)
-    return _to_response(best_row, _dosage_matches(best_row, extracted_data.dosage))
+    best_searchable = " ".join(
+        str(_row_value(best_row, field) or "")
+        for field in ("fda_brandname", "fda_genericname")
+    ).casefold()
+    matched_keywords = sum(keyword in best_searchable for keyword in keywords)
+    dosage_match = _dosage_matches(best_row, extracted_data.dosage)
+    return _to_response(
+        best_row,
+        extracted_data.medicine_name,
+        dosage_match,
+        matched_keywords,
+        len(keywords),
+    )

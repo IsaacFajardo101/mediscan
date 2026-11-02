@@ -68,6 +68,42 @@
         </div>
       </section>
 
+      <section class="workbench ocr-workbench">
+        <div class="workbench-heading">
+          <div>
+            <p class="eyebrow">OCR MOCK</p>
+            <h2>Scan a medicine label</h2>
+          </div>
+          <span class="method-pill">POST</span>
+        </div>
+
+        <p class="field-help">Take a medicine photo with your camera or choose an existing image.</p>
+        <div class="ocr-input-actions">
+          <button id="ocr-camera-button" class="secondary-button" type="button">Use camera</button>
+          <label class="secondary-button" for="ocr-image-input">Choose image</label>
+        </div>
+        <label class="upload-control" for="ocr-image-input">
+          <input id="ocr-image-input" type="file" accept="image/*">
+        </label>
+        <input id="ocr-camera-input" type="file" accept="image/*" capture="environment" hidden>
+        <div class="camera-view" id="camera-view" hidden>
+          <video id="camera-video" autoplay playsinline muted></video>
+          <div class="camera-actions">
+            <button id="capture-photo-button" class="secondary-button" type="button">Capture photo</button>
+            <button id="close-camera-button" class="text-button" type="button">Cancel</button>
+          </div>
+        </div>
+        <div class="ocr-preview-wrap" id="ocr-preview-wrap" hidden>
+          <img id="ocr-image-preview" alt="Selected medicine label preview">
+        </div>
+        <div class="actions">
+          <span class="endpoint">POST /api/v1/ocr/extract-label</span>
+          <button id="ocr-submit-button" type="button" disabled>
+            <span>Extract and match</span><span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+
       <section class="response-panel">
         <div class="response-heading">
           <div>
@@ -77,6 +113,28 @@
           <span class="response-status" id="response-status">Waiting for a request</span>
         </div>
         <pre id="response-output" aria-live="polite">The response will appear here.</pre>
+      </section>
+
+      <section class="response-panel" id="ocr-response-panel" hidden>
+        <div class="response-heading">
+          <div>
+            <p class="eyebrow">OCR RESULT</p>
+            <h2>Suggested medicine</h2>
+          </div>
+          <span class="response-status" id="ocr-response-status">Waiting for an image</span>
+        </div>
+        <div class="ocr-confidence" id="ocr-confidence" hidden>
+          <div class="confidence-heading">
+            <span>Match accuracy</span>
+            <strong id="ocr-confidence-value">0%</strong>
+          </div>
+          <div class="confidence-track" aria-hidden="true">
+            <div class="confidence-fill" id="ocr-confidence-fill"></div>
+          </div>
+          <div class="confidence-level" id="ocr-confidence-level">LOW</div>
+          <p id="ocr-confidence-guidance"></p>
+        </div>
+        <pre id="ocr-response-output" aria-live="polite">The OCR result will appear here.</pre>
       </section>
 
       <footer>

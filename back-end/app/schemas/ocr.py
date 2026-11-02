@@ -35,17 +35,24 @@ class LinkedMedicineResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     fda_id: int = Field(ge=1)
-    fda_registration_id: str = Field(min_length=1, max_length=255)
-    fda_approval_id: str = Field(min_length=1, max_length=255)
-    fda_brandname: str | None = Field(default=None, max_length=255)
-    fda_genericname: str = Field(min_length=1, max_length=255)
-    fda_dosage_form: str | None = Field(default=None, max_length=255)
-    fda_dosage_strength: str | None = Field(default=None, max_length=255)
-    fda_manufacturer: str | None = Field(default=None, max_length=255)
-    fda_pharmacologic_category: str | None = Field(default=None, max_length=255)
-    fda_classification: str | None = Field(default=None, max_length=100)
+    fda_registration_id: str = Field(min_length=1)
+    fda_approval_id: str = Field(min_length=1)
+    fda_brandname: str | None = None
+    fda_genericname: str = Field(min_length=1)
+    fda_dosage_form: str | None = None
+    fda_dosage_strength: str | None = None
+    fda_manufacturer: str | None = None
+    fda_pharmacologic_category: str | None = None
+    fda_classification: str | None = None
     match_type: Literal["exact", "fuzzy"] = "exact"
     match_score: float = Field(ge=0, le=1)
+    confidence_percentage: int = Field(default=0, ge=0, le=100)
+    confidence_level: Literal["max", "high", "medium", "low"] = "low"
+    accuracy_guidance: str = Field(
+        default="Use a clear, well-lit photo showing the full brand or generic name and dosage.",
+        min_length=1,
+        max_length=500,
+    )
 
 
 class OCRResponse(BaseModel):

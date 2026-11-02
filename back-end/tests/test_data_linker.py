@@ -8,6 +8,7 @@ if str(APP_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(APP_DIRECTORY))
 
 from schemas.ocr import ExtractedEntityResponse
+from schemas.ocr import LinkedMedicineResponse
 from services.data_linker import link_medicine_record
 
 
@@ -64,6 +65,8 @@ async def test_linker_uses_keyword_ilike_and_prioritizes_dosage():
     assert result is not None
     assert result.fda_id == 2
     assert result.match_type == "exact"
+    assert result.confidence_percentage == 100
+    assert result.confidence_level == "max"
     assert "like" in str(db.statement).casefold()
 
 
@@ -85,3 +88,21 @@ async def test_linker_returns_none_without_name_or_matches():
         )
         is None
     )
+
+
+def test_linked_response_accepts_long_fda_text_fields():
+    long_text = "Each effervescent tablet contains " + " ".join(
+        ["ascorbic acid 100mg"] * 30
+    )
+    response = LinkedMedicineResponse(
+        fda_id=1,
+        fda_registration_id="REG-1",
+        fda_approval_id="APP-1",
+        fda_genericname=long_text,
+        match_score=1.0,
+        confidence_percentage=100,
+        confidence_level="max",
+        accuracy_guidance="Exact match.",
+    )
+
+    assert len(response.fda_genericname) > 255
