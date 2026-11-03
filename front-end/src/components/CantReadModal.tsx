@@ -50,7 +50,7 @@ export default function CantReadModal({ visible, onClose, onUseDifferentPhoto }:
       <View style={styles.iconCircle}>
         <Image source={Assets.icons.unreadableScan} style={styles.bigIcon} contentFit="contain" />
       </View>
-      <Text style={styles.title}>We couldn't read the text</Text>
+      <Text style={styles.title}>We couldn&apos;t read the text</Text>
       <Text style={styles.message}>
         No text was detected on this photo. Make sure the label is clear, well-lit and inside the frame — or try a
         different photo.
