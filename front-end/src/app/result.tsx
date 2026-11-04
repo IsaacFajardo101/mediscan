@@ -8,9 +8,9 @@ import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Spacing, Type } from '@/constants/display';
-import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
-import { useVault } from '@/services/vaultStore';
-import { getMedicineForm } from '@/utils/medicine';
+import { findPossibleMatch, isScanState, mockScanResults, VERIFIED_VAULT_ID } from '@/data/mockScanResults';
+import { useVaultMedicine } from '@/services/vaultStore';
+import { formatLongDate, getMedicineForm } from '@/utils/medicine';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const CategoryText = '#938B8B';
@@ -35,14 +35,20 @@ export default function ResultScreen() {
     router.navigate('/vault');
   };
 
-  // TEMP: the mock scan result does not match any vault medicine, so View Medicine Details opens the
-  // Medicine Details screen (/medicine/[id]) with the first medicine in the vault. Replace this with the
+  // TEMP: the verified mock is the same medicine as the mock vault's Heparin Leo 5,000 IU/mL, so View
+  // Medicine Details opens it on the Medicine Details screen (/medicine/[id]). Its expiry date comes from
+  // the vault entry (the mock vault sets it relative to the day it was first created). Replace this with the
   // scanned medicine once the real scan data is wired (MedicineDetails also has mode="preview" for that).
-  const { medicines } = useVault();
-  const viewDetails = () => {
-    const first = medicines[0];
-    if (first) router.push({ pathname: '/medicine/[id]', params: { id: first.vault_id } });
-  };
+  const { medicine: vaultMatch } = useVaultMedicine(VERIFIED_VAULT_ID);
+  const viewDetails = () => router.push({ pathname: '/medicine/[id]', params: { id: VERIFIED_VAULT_ID } });
+  const verifiedInfo =
+    result.status === 'verified'
+      ? result.info.map((row) =>
+          row.label === 'Expiry Date' && vaultMatch?.vault_expiry_date
+            ? { ...row, value: formatLongDate(vaultMatch.vault_expiry_date) }
+            : row,
+        )
+      : [];
 
   return (
     <View style={styles.screen}>
@@ -62,7 +68,7 @@ export default function ResultScreen() {
                 <Text style={styles.medicineCategory}>{result.medicine.category}</Text>
               </View>
             </View>
-            <MedicineInfoCard rows={result.info} />
+            <MedicineInfoCard rows={verifiedInfo} />
           </>
         )}
 

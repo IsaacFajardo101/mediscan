@@ -62,21 +62,29 @@ export function fromSearchResponse(res: ApiResponse): ScanResult {
   return { status: 'needs_verification', confidence: MOCK_CONFIDENCE, matches };
 }
 
+// The verified mock is "Heparin Leo 5,000 IU/mL" (FDA reg. BR-1005, first entry of response_2_multiple.json).
+// This is the id of the same medicine in the mock vault (src/mock/index.ts: `mock-<fda_approval_id>`), so
+// View Medicine Details opens the matching Medicine Details screen. Confidence (96) is the vault mock's value.
+export const VERIFIED_VAULT_ID = 'mock-0f3b194307307840';
+
 export const mockScanResults: Record<ScanState, ScanResult> = {
   verified: {
     status: 'verified',
-    confidence: 80,
+    confidence: 96,
     medicine: {
-      name: 'Paracetamol 500mg Tablet',
-      category: 'Pain Reliever / Flu Reliever',
-      form: 'Tablet',
+      name: 'Heparin Leo 5,000 IU/mL',
+      category: 'Heparin Sodium',
+      form: 'Solution For Injection (IV/SC)',
     },
     info: [
-      { icon: Assets.icons.manufacturer, label: 'Manufacturer', value: 'ABC Pharma' },
+      // Same values the Medicine Details screen shows. The mock data's manufacturer field is mis-mapped
+      // (it holds a category), and there is no batch number in the data, so that row stays a sample value.
+      { icon: Assets.icons.manufacturer, label: 'Manufacturer', value: 'Antithrombotic Agents' },
+      // Fallback only: result.tsx shows the expiry date of the vault medicine when it is there.
       { icon: Assets.icons.expiryDate, label: 'Expiry Date', value: 'May 19, 2030' },
       { icon: Assets.icons.batchNumber, label: 'Batch Number', value: '1876920' },
-      { icon: Assets.icons.medicineType, label: 'Medicine Type', value: 'Tablet' },
-      { icon: Assets.icons.strength, label: 'Strength', value: '500mg' },
+      { icon: Assets.icons.medicineType, label: 'Medicine Type', value: 'Solution For Injection (IV/SC)' },
+      { icon: Assets.icons.strength, label: 'Strength', value: '5,000 IU/mL' },
     ],
   },
   needs_verification: fromSearchResponse(multipleResponse as ApiResponse),
