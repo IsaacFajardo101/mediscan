@@ -3,8 +3,15 @@
 Branch: `frontend-results`. Work on the Scan Result and Manual Entry screens.
 
 ## Tech stack
-- Expo SDK 57, React Native 0.86.3, React 19.2.3, TypeScript 6, Expo Router (routes in `src/app/`), `expo-image`, Reanimated.
-- Typecheck with `npx tsc --noEmit`. One old error in `src/components/app-tabs.web.tsx` (`/explore`, Expo template leftover): ignore it. `expo lint` can't run (`eslint` not installed).
+- Expo SDK 58 (upgraded from 57; `npm install`, `npx expo install --check` and `npx expo-doctor` were clean), React Native 0.86.3 (not re-checked after the upgrade), React 19.2.3, TypeScript 6, Expo Router (routes in `src/app/`), `expo-image`, Reanimated.
+- Typecheck with `npx tsc --noEmit`. `expo lint` can't run (`eslint` not installed).
+- **Type errors to look into next time:** after the SDK 58 upgrade (2026-11-04), `tsc --noEmit` reports 43 errors in 21 files. The app still runs in Expo Go despite them, and none has been fixed yet. Before this, only one was known (`/explore` in `app-tabs.web.tsx`, Expo template leftover). Groups:
+  - View refs (`useRef` on a `View` is typed as a function component, so `measureInWindow` fails): `AddMenu`, `AddTabButton`, `CardMenu`, `MedicineCard`, `app-tabs.web`.
+  - `useColorScheme()` can be `null` and is never `'unspecified'`: `use-theme.ts`, `app-tabs.tsx`, `app-tabs.web.tsx`.
+  - Typed routes missing from the generated types: `/explore`, `/add-note`, `/medicine/[id]`, plus several in `src/app` (`(tabs)/index`, `(tabs)/profiles`, `add-edit-profile`, `choose-profile`, `edit-medicine` lines 44-47, `profile-detail`, `recent-scans`, `verify-code`). Check whether each route file exists or the types in `.expo/types` are stale.
+  - `StyleSheet.absoluteFillObject` removed (`HealthInfo.tsx:187`; use `absoluteFill`).
+  - `NodeJS.Timeout` unavailable (`ProfileContext.tsx:26-27`; use `ReturnType<typeof setTimeout>`).
+  - Planned approach: fix in that order, no `any`/`@ts-ignore`, re-run `tsc` after each group. Not started.
 
 ## Conventions the user asked for
 - Use design tokens from `src/constants/display.ts` (`Colors`, `Type`, `Spacing`, `Radius`) and `src/constants/assets.ts` (`Assets`). Do **not** use `src/constants/theme.ts` (Expo template leftover).
@@ -42,7 +49,7 @@ Branch: `frontend-results`. Work on the Scan Result and Manual Entry screens.
 ### Overlays (Figma `1615:3933` Medicine Added, `1945:4040` Leave page?)
 - `components/OverlayModal.tsx`: shared RN `Modal` with dim backdrop (`rgba(5,31,32,0.45)`), white 20px-radius card; tapping outside or Android back calls `onRequestClose`.
 - `components/MedicineAddedModal.tsx` (`visible`, `medicineName`, `onViewVault`, `onClose`): shown by Save to Vault on Scan Result, Manual Entry and Edit Medicine. View in Vault closes it and does `router.navigate('/vault')`; Add Another and tapping outside only close it (user's choice, new vs. the Figma frame). Name shown: verified medicine, selected match, or the typed Medicine Name.
-- `components/QuitEditingModal.tsx` (`visible`, `onConfirm`, `onCancel`): the Figma frame is named "Confirm – Delete Medicine" but it is only a "Leave page?" confirmation for quitting Edit Medicine. Yes goes back to Scan Result, Cancel and tapping outside close it.
+- `components/QuitEditingModal.tsx` (`visible`, `onConfirm`, `onCancel`): the Figma frame is named "Confirm â€“ Delete Medicine" but it is only a "Leave page?" confirmation for quitting Edit Medicine. Yes goes back to Scan Result, Cancel and tapping outside close it.
 - `edit-medicine.tsx` shows it by intercepting the navigation `beforeRemove` event (header back arrow, Android back, swipe back), keeps the blocked action in `pendingLeave` and re-dispatches it on Yes. `allowLeave` ref skips the prompt after Yes and after Save to Vault (already saved). `Parameters<typeof navigation.dispatch>[0]` types the action because `@react-navigation/native` is not directly importable.
 - `components/CantReadModal.tsx` (Figma `1615:3972`, "We couldn't read the text"): Camera overlay for when no text is detected. **Built but NOT wired to Camera yet** (on purpose, for a future sprint). Props `visible`, `onClose`, `onUseDifferentPhoto`. Rescan and tapping outside only call `onClose`. Use a Different Photo closes it, then calls `onUseDifferentPhoto` (Camera should pass its gallery picker; on iOS it waits for the Modal's `onDismiss` so the picker doesn't clash with the closing animation). Enter Details Manually closes it and does `router.push('/manual-entry')`. `OverlayModal` got an optional `onDismiss` prop for this.
   - To wire it in `(tabs)/camera.tsx`: add `const [cantReadOpen, setCantReadOpen] = useState(false)`, render `<CantReadModal visible={cantReadOpen} onClose={() => setCantReadOpen(false)} onUseDifferentPhoto={<gallery pick function>} />`, and call `setCantReadOpen(true)` when the scan finds no text. Camera's gallery pick (`ImagePicker.launchImageLibraryAsync`, one photo, after the media-permission check) is what to pass as `onUseDifferentPhoto`.
@@ -61,7 +68,7 @@ Branch: `frontend-results`. Work on the Scan Result and Manual Entry screens.
 - Not committed yet: `camera.tsx`, `app/_layout.tsx`, `manual-entry.tsx`, `assets.ts`, `app/result.tsx`, the four components, `src/data/`.
 
 ## Open items / TODO
-- Neither screen has been run and compared against the Figma frames yet.
+- The built screens on `frontend-results` have been run in Expo Go and compared against the Figma frames: they match so far (checked by the user, ongoing).
 - Wire the real flow: scan response to `fromSearchResponse()` to `/result` with the data; derive the verified state from a one-medicine response (`response_1_single.json` has no expiry/batch number, and its manufacturer/category fields look mis-mapped).
 - Tapping a possible match (should open Manual Entry), View Medicine Details and actually saving to the vault (AsyncStorage) are TODOs. The overlays are not run/verified against Figma yet.
 - Manual Entry: medicine search results and picking (read-only fields stay empty), a date picker (none installed), real save.
