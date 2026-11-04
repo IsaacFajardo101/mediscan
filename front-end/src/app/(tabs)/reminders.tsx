@@ -22,12 +22,14 @@ import {
 } from '@/components/reminderTypes';
 import { useColors } from '@/hooks/useColors';
 
+
+
 const STORAGE_KEY = 'mediscan.reminders.v1';
 
 export default function RemindersScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openAdd?: string }>();
+  const params = useLocalSearchParams<{ openAdd?: string; member?: string }>();
   const handledAddParam = useRef('');
   const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
   const [loaded, setLoaded] = useState(false);
@@ -40,11 +42,28 @@ export default function RemindersScreen() {
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
+   useEffect(() => {
+    if (params.member) {
+      // Handles both "Self" and "Me" so mock data matches properly
+      const target = params.member === 'Self' ? 'Me' : params.member;
+      
+      const found = FAMILY_MEMBERS.find(
+        (m: string) => m.toLowerCase() === target.toLowerCase()
+      );
+
+      const finalMember = found || target;
+      queueMicrotask(() => {
+        setSelectedMember(finalMember);
+        setPendingMember(finalMember);
+      });
+    }
+  }, [params.member]);
+  
   useEffect(() => {
     let isMounted = true;
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((saved) => {
-        if (!isMounted) return;
+        .then((saved) => {
+          if (!isMounted) return;
         if (saved) {
           const parsed: unknown = JSON.parse(saved);
           if (

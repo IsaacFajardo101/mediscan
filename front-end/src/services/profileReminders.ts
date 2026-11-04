@@ -1,38 +1,16 @@
 // Current profile + that profile's upcoming reminders (for Home).
 //
-// TEMP: the Profile team owns "which profile is selected". Until their code is merged,
-// this reads the profile id from AsyncStorage key 'mediscan.currentProfileId'
-// (if they save the selected profile there, Home will follow it automatically),
-// otherwise it uses the first profile in the shared mock.
+// The current profile = the one picked on "Choose your profile" (ProfileContext),
+// so Home, the side menu, Settings and the Profile screen all show the same person.
 // Reminders belong to the Reminders team; this only READS the shared reminder mock.
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
-import { getMockProfiles, getMockReminders } from '@/mock';
+import { useProfile } from '@/context/ProfileContext';
+import { getMockReminders } from '@/mock';
 import type { Profile, ReminderSchedule, VaultMedicine } from '@/types/medicine';
 import { formatTime, parseDate } from '@/utils/medicine';
 
-export const CURRENT_PROFILE_KEY = 'mediscan.currentProfileId';
-
 export function useCurrentProfile(): Profile | null {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const profiles = getMockProfiles();
-      let id: string | null = null;
-      try {
-        id = await AsyncStorage.getItem(CURRENT_PROFILE_KEY);
-      } catch {
-        id = null;
-      }
-      const found = profiles.find((p) => String(p.profile_id) === id) ?? profiles[0] ?? null;
-      if (alive) setProfile(found);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return profile;
+  // Updates right away when the user switches profile or edits their name/avatar
+  return useProfile().activeProfile;
 }
 
 // "Maria Batumbakal" -> "Maria"
