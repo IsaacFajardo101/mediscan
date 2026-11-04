@@ -9,6 +9,7 @@ import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Spacing, Type } from '@/constants/display';
 import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
+import { useVault } from '@/services/vaultStore';
 import { getMedicineForm } from '@/utils/medicine';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
@@ -32,6 +33,15 @@ export default function ResultScreen() {
   const goToVault = () => {
     setAddedOpen(false);
     router.navigate('/vault');
+  };
+
+  // TEMP: the mock scan result does not match any vault medicine, so View Medicine Details opens the
+  // Medicine Details screen (/medicine/[id]) with the first medicine in the vault. Replace this with the
+  // scanned medicine once the real scan data is wired (MedicineDetails also has mode="preview" for that).
+  const { medicines } = useVault();
+  const viewDetails = () => {
+    const first = medicines[0];
+    if (first) router.push({ pathname: '/medicine/[id]', params: { id: first.vault_id } });
   };
 
   return (
@@ -88,7 +98,7 @@ export default function ResultScreen() {
         onRedoScan={() => router.replace('/camera')}
         onSave={() => setAddedOpen(true)}
         onEdit={() => router.push({ pathname: '/edit-medicine', params: { id: selectedId } })}
-        // TODO: onViewDetails -> medicine details screen
+        onViewDetails={viewDetails}
       />
 
       <MedicineAddedModal
