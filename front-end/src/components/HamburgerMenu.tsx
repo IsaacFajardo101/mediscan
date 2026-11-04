@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Animated,
   BackHandler,
@@ -10,12 +10,13 @@ import {
   View,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSizes, Radius, Spacing } from '@/constants/display';
+import { useProfile } from '@/context/ProfileContext';
 import Logo from './Logo';
 import { useMenu } from './MenuContext';
-import { usePathname } from 'expo-router';
+import ProfileAvatar from './ProfileAvatar';
 
 const PANEL_W = Dimensions.get('window').width * 0.78;
 
@@ -48,6 +49,8 @@ const ITEMS: { label: string; icon: React.ReactElement; route: string }[] = [
 
 export default function HamburgerMenu() {
   const { open, closeMenu, openLogout } = useMenu();
+  // The profile picked on "Choose your profile" + the logged-in account's email
+  const { activeProfile, email } = useProfile();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -57,14 +60,16 @@ export default function HamburgerMenu() {
   const insets = useSafeAreaInsets();
 
   const [mounted, setMounted] = useState(false);
-  const x = useRef(new Animated.Value(-PANEL_W)).current;
-  const fade = useRef(new Animated.Value(0)).current;
+  // Animated values kept in state (not useRef(...).current) so the React lint rules are happy
+  const [x] = useState(() => new Animated.Value(-PANEL_W));
+  const [fade] = useState(() => new Animated.Value(0));
+
+  // Show the panel as soon as it's opened (it hides itself after the slide-out finishes)
+  if (open && !mounted) setMounted(true);
 
   // Slide in when opened, slide out when closed
   useEffect(() => {
     if (open) {
-      setMounted(true);
-
       Animated.parallel([
         Animated.timing(x, {
           toValue: 0,
@@ -161,19 +166,15 @@ export default function HamburgerMenu() {
             }}
             accessibilityRole="button"
           >
-            {/* TODO: replace with the real avatar image once Person 1/2's avatar assets are merged */}
-            <View style={styles.avatar}>
-              <Ionicons
-                name="person"
-                size={26}
-                color={Colors.primary}
-              />
-            </View>
+            {/* Same avatar, name and email as Home, Settings and the Profile screen */}
+            <ProfileAvatar icon={activeProfile?.profile_icon ?? 1} size={52} />
 
             <View style={styles.profileText}>
-              <Text style={styles.name}>Maria Batumbakal</Text>
-              <Text style={styles.email}>
-                mariabatumbakal@email.com
+              <Text style={styles.name} numberOfLines={1}>
+                {activeProfile?.profile_fullname ?? ''}
+              </Text>
+              <Text style={styles.email} numberOfLines={1}>
+                {email ?? ''}
               </Text>
             </View>
 
@@ -296,14 +297,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: Radius.pill,
-    backgroundColor: Colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   profileText: {
     flex: 1,

@@ -21,7 +21,7 @@ export default function VerifyCodeScreen() {
   const insets = useSafeAreaInsets();
   const { email = '' } = useLocalSearchParams<{ email?: string }>();
 
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +117,7 @@ export default function VerifyCodeScreen() {
           <View style={styles.row}>
             {seconds > 0 ? (
               <Text style={styles.hint}>
-                Didn't get the code? Resend in {mm}:{ss}
+                Didn&apos;t get the code? Resend in {mm}:{ss}
               </Text>
             ) : (
               <Pressable onPress={onResend} hitSlop={8}>

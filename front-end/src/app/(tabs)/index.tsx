@@ -8,17 +8,22 @@ import ScanCard from '@/components/medicine/ScanCard';
 import { Colors, Components, Radius, Spacing, Type } from '@/constants/display';
 import { useFirstLaunchPermissions } from '@/hooks/useFirstLaunchPermissions';
 import { resetListQuery } from '@/services/listQueryStore';
-import { firstName, getUpcomingReminders, useCurrentProfile } from '@/services/profileReminders';
+import {
+  firstName, getUpcomingReminders, useLoggedInProfile, useSavedReminders,
+} from '@/services/profileReminders';
 import { useVault } from '@/services/vaultStore';
 import type { StatusFilter, UrgencyFilter, VaultMedicine } from '@/types/medicine';
-import { getMedicineForm, medicineName, overviewCounts } from '@/utils/medicine';
+import { getMedicineForm, overviewCounts } from '@/utils/medicine';
 
+// Home (Figma: Home Page). The top bar (burger + MediScan logo + bell) comes from
+// (tabs)/_layout.tsx, so this screen does NOT draw its own header.
 export default function HomeScreen() {
   useFirstLaunchPermissions();
   const router = useRouter();
   const { ready, medicines } = useVault();
-  const profile = useCurrentProfile();
+  const profile = useLoggedInProfile(); // the profile picked on Choose Profile
   const name = firstName(profile);
+  const savedReminders = useSavedReminders();
 
   const counts = useMemo(() => overviewCounts(medicines), [medicines]);
   const recent = useMemo(
@@ -26,18 +31,28 @@ export default function HomeScreen() {
     [medicines],
   );
   const reminders = useMemo(
-    () => getUpcomingReminders(profile?.profile_id ?? null, medicines).slice(0, 3),
-    [profile, medicines],
+    () => getUpcomingReminders(savedReminders, profile).slice(0, 3),
+    [savedReminders, profile],
   );
 
   const openDetails = (m: VaultMedicine) =>
     router.push({ pathname: '/medicine/[id]', params: { id: m.vault_id } });
 
-  // Medicine Overview -> "<Name>'s Medicine" list, optionally pre-filtered by the tapped card
-  const openOverview = (status: StatusFilter = 'all', urgency: UrgencyFilter = 'none') => {
-    resetListQuery('overview', { status, urgency });
-    router.push('/medicine-overview');
+  // Medicine Overview cards -> the Vault tab (there is no separate per-profile vault).
+  // Total = whole vault; the other cards open the Vault already filtered to match the card.
+  const openVault = (status: StatusFilter = 'all', urgency: UrgencyFilter = 'none') => {
+    resetListQuery('vault', { status, urgency });
+    router.navigate('/vault');
   };
+
+  // Upcoming Reminders -> Reminders tab, filtered to the logged-in profile.
+  // With reminderId, the Reminders tab opens that reminder's details right away.
+  const member = profile?.profile_display_name ?? '';
+  const openReminders = (reminderId?: string) =>
+    router.navigate({
+      pathname: '/reminders',
+      params: reminderId ? { member, reminderId, from: 'home' } : { member },
+    });
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
@@ -53,26 +68,26 @@ export default function HomeScreen() {
       </LinearGradient>
 
       {/* Medicine Overview */}
-      <SectionHeader title="Medicine Overview" onViewAll={() => openOverview()} />
+      <SectionHeader title="Medicine Overview" />
       {!ready ? (
         <ActivityIndicator color={Colors.actionPrimary} style={{ marginVertical: Spacing.lg }} />
       ) : (
         <View style={styles.stats}>
           <StatCard
             icon={<MaterialCommunityIcons name="pill" size={26} color={Colors.textSecondary} />}
-            value={counts.total} label="Total Medicines" onPress={() => openOverview()}
+            value={counts.total} label="Total Medicines" onPress={() => openVault()}
           />
           <StatCard
             icon={<Ionicons name="shield-checkmark" size={26} color={Colors.statusSuccess} />}
-            value={counts.verified} label="Verified" onPress={() => openOverview('verified')}
+            value={counts.verified} label="Verified" onPress={() => openVault('verified')}
           />
           <StatCard
             icon={<Ionicons name="warning" size={26} color={Colors.statusWarning} />}
-            value={counts.needsVerification} label="Needs Verification" onPress={() => openOverview('needs_verification')}
+            value={counts.needsVerification} label="Needs Verification" onPress={() => openVault('needs_verification')}
           />
           <StatCard
             icon={<Ionicons name="time" size={26} color={Colors.statusDanger} />}
-            value={counts.expiring} label="Expiring" onPress={() => openOverview('all', 'within30')}
+            value={counts.expiring} label="Expiring" onPress={() => openVault('all', 'within30')}
           />
         </View>
       )}
@@ -87,31 +102,30 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Upcoming Reminders (for the selected profile) */}
-      <SectionHeader title="Upcoming Reminders" onViewAll={() => router.navigate('/reminders')} />
+      {/* Upcoming Reminders (for the logged-in profile) */}
+      <SectionHeader title="Upcoming Reminders" onViewAll={() => openReminders()} />
       {reminders.length === 0 ? (
         <EmptyLine text={`No upcoming reminders for ${name}.`} />
       ) : (
         <View style={styles.list}>
-          {reminders.map((r) => (
+          {reminders.map(({ reminder, label }) => (
             <Pressable
-              key={r.schedule.schedule_id}
+              key={reminder.id}
               style={({ pressed }) => [Components.medicineCard, styles.reminder, pressed && { opacity: 0.85 }]}
-              onPress={() => router.navigate('/reminders')}
+              onPress={() => openReminders(reminder.id)}
               accessibilityRole="button"
+              accessibilityLabel={`${reminder.medicine}, ${label}. Open reminder details`}
             >
-              <MedicineIcon form={getMedicineForm(r.medicine?.fda_dosage_form)} size={48} />
+              <MedicineIcon form={getMedicineForm(reminder.category)} size={48} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.remName} numberOfLines={1}>
-                  {r.medicine ? medicineName(r.medicine) : r.schedule.fda_registration_id}
-                </Text>
+                <Text style={styles.remName} numberOfLines={1}>{reminder.medicine}</Text>
                 <Text style={styles.remSub} numberOfLines={1}>
-                  {r.schedule.sched_frequency_type}{r.schedule.sched_notes ? ` · ${r.schedule.sched_notes}` : ''}
+                  {reminder.frequency}{reminder.instructions ? ` · ${reminder.instructions}` : ''}
                 </Text>
               </View>
               <View style={styles.remTime}>
                 <Ionicons name="alarm-outline" size={16} color={Colors.statusSuccess} />
-                <Text style={styles.remTimeText}>{r.label}</Text>
+                <Text style={styles.remTimeText}>{label}</Text>
               </View>
             </Pressable>
           ))}
@@ -121,13 +135,16 @@ export default function HomeScreen() {
   );
 }
 
-function SectionHeader({ title, onViewAll }: { title: string; onViewAll: () => void }) {
+// "View All" only shows when onViewAll is given (Medicine Overview has none).
+function SectionHeader({ title, onViewAll }: { title: string; onViewAll?: () => void }) {
   return (
     <View style={styles.sectionRow}>
       <Text style={styles.section}>{title}</Text>
-      <Pressable onPress={onViewAll} hitSlop={10} accessibilityRole="button" accessibilityLabel={`View all ${title}`}>
-        <Text style={styles.viewAll}>View All</Text>
-      </Pressable>
+      {onViewAll && (
+        <Pressable onPress={onViewAll} hitSlop={10} accessibilityRole="button" accessibilityLabel={`View all ${title}`}>
+          <Text style={styles.viewAll}>View All</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

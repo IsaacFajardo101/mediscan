@@ -1,6 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,12 +12,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import AvatarPickerSheet from '../components/AvatarPickerSheet';
-import ProfileAvatar from '../components/ProfileAvatar';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProfile } from '../context/ProfileContext';
+import ProfileAvatar from '../components/ProfileAvatar';
+import AvatarPickerSheet from '../components/AvatarPickerSheet';
 
 export default function AddEditProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string; profileId?: string }>();
   const isEdit = params.mode === 'edit';
 
@@ -38,18 +40,19 @@ export default function AddEditProfileScreen() {
 
   useEffect(() => {
     if (isEdit && existingProfile) {
-      setFullname(existingProfile.profile_fullname);
-      setDisplayName(
-        (existingProfile as any).profile_display_name ||
-        existingProfile.profile_display_name ||
-        ''
-      );
-      setBirthdate(existingProfile.profile_birthdate);
-      setIconId(existingProfile.profile_icon || 1);
+      queueMicrotask(() => {
+        setFullname(existingProfile.profile_fullname);
+        setDisplayName(
+          (existingProfile as any).profile_display_name ||
+          (existingProfile as any).profile_relationship ||
+          ''
+        );
+        setBirthdate(existingProfile.profile_birthdate);
+        setIconId(existingProfile.profile_icon || 1);
+      });
     }
   }, [isEdit, existingProfile]);
 
-  // Validation: All fields with asterisks (*) are required
   const handleSave = async () => {
     if (!fullname.trim()) {
       Alert.alert('Required Field', 'Please enter Full Name.');
@@ -84,12 +87,16 @@ export default function AddEditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
           <Ionicons name="arrow-back" size={24} color="#1B4332" />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>
@@ -103,7 +110,7 @@ export default function AddEditProfileScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Avatar Section: Consistent with Create Profile */}
+          {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <TouchableOpacity
               style={styles.avatarWrap}
@@ -163,7 +170,7 @@ export default function AddEditProfileScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Shared AvatarPickerSheet (Identical to Create Profile) */}
+      {/* Shared Avatar Picker Sheet */}
       <AvatarPickerSheet
         visible={showPicker}
         selected={iconId}
