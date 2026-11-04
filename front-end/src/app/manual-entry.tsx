@@ -142,6 +142,12 @@ export default function ManualEntryScreen() {
           router.navigate('/vault');
         }}
         onClose={() => setAddedOpen(false)}
+        // Add Another here stays on this screen: close the overlay and clear the form for the next entry.
+        onAddAnother={() => {
+          setAddedOpen(false);
+          setMedicineName('');
+          setExpiry('');
+        }}
       />
     </ScrollView>
   );
