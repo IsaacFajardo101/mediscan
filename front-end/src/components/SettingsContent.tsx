@@ -4,6 +4,8 @@ import { Camera } from 'expo-camera';
 import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import { useProfile } from '@/context/ProfileContext';
 
 type Screen = 'Settings' | 'Display' | 'Language' | 'Notifications' | 'Offline Database' | 'Privacy' | 'FAQs' | 'About MediScan' | 'Privacy Policy' | 'Terms of Service' | 'Open Source Licenses';
 
@@ -47,6 +49,8 @@ const FAQS = [
 ];
 
 export default function SettingsContent({ onBack }: { onBack?: () => void }) {
+  // The profile picked on "Choose your profile" + the logged-in account's email
+  const { activeProfile, email } = useProfile();
   const [screen, setScreen] = useState<Screen>('Settings');
   const [appearance, setAppearance] = useState('Light');
   const [language, setLanguage] = useState('English');
@@ -61,7 +65,6 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   const [syncModal, setSyncModal] = useState<'closed' | 'syncing' | 'complete'>('closed');
   const [clearCacheModal, setClearCacheModal] = useState(false);
   const [lastSynced, setLastSynced] = useState('Today, 9:32 AM');
-  const [openLicense, setOpenLicense] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -134,10 +137,11 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
 
   const ProfileCard = () => (
     <View style={styles.profileCard}>
-      <View style={[styles.avatar, styles.avatarPlaceholder]}><Ionicons name="person" size={27} color="#64847D" /></View>
+      {/* Same avatar, name and email as Home, the side menu and the Profile screen */}
+      <ProfileAvatar icon={activeProfile?.profile_icon ?? 1} size={50} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.profileName}>Maria Batumbakal</Text>
-        <Text style={styles.email}>mariabatumbakal@email.com</Text>
+        <Text style={styles.profileName} numberOfLines={1}>{activeProfile?.profile_fullname ?? ''}</Text>
+        <Text style={styles.email} numberOfLines={1}>{email ?? ''}</Text>
       </View>
     </View>
   );
@@ -530,11 +534,13 @@ export default function SettingsContent({ onBack }: { onBack?: () => void }) {
   return (
     <View style={styles.container}>
       <View style={styles.main}>
-        {screen === 'Settings' && <SettingsScreen />}
-        {screen === 'Display' && <DisplayScreen />}
-        {screen === 'Language' && <LanguageScreen />}
-        {screen === 'Notifications' && <NotificationsScreen />}
-        {!['Settings', 'Display', 'Language', 'Notifications'].includes(screen) && <OtherScreen />}
+        {/* Called as functions (not <SettingsScreen />) so React doesn't treat them as
+            brand-new components on every render — that reset the FAQ search box and scroll. */}
+        {screen === 'Settings' && SettingsScreen()}
+        {screen === 'Display' && DisplayScreen()}
+        {screen === 'Language' && LanguageScreen()}
+        {screen === 'Notifications' && NotificationsScreen()}
+        {!['Settings', 'Display', 'Language', 'Notifications'].includes(screen) && OtherScreen()}
       </View>
     </View>
   );

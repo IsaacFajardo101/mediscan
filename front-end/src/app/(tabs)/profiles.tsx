@@ -3,18 +3,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useProfile } from '../../context/ProfileContext';
+import { fromApiDate } from '../../lib/validation';
 import { Profile } from '../../types/profile';
 
 export default function FamilyProfilesTab() {
   const router = useRouter();
-  const { profiles, setActiveProfile, pendingDeleteId, undoDelete, undoSecondsLeft } = useProfile();
+  const { profiles, pendingDeleteId, undoDelete, undoSecondsLeft } = useProfile();
 
   const renderItem = ({ item }: { item: Profile }) => (
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.7}
+            // Viewing a family member does NOT switch the active profile (that's done on "Choose your profile")
       onPress={() => {
-        setActiveProfile(item);
         router.push({
           pathname: '/profile-detail',
           params: { profileId: item.profile_id },
@@ -32,7 +33,7 @@ export default function FamilyProfilesTab() {
       <View style={styles.info}>
         <Text style={styles.name}>{item.profile_fullname}</Text>
         <Text style={styles.relationship}>
-          {item.profile_display_name} • Born {item.profile_birthdate}
+          {item.profile_display_name} • Born {fromApiDate(item.profile_birthdate)}
         </Text>
       </View>
 

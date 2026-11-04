@@ -22,6 +22,8 @@ import {
 } from '@/components/reminderTypes';
 import { useColors } from '@/hooks/useColors';
 
+
+
 const STORAGE_KEY = 'mediscan.reminders.v1';
 
 export default function RemindersScreen() {
@@ -41,11 +43,28 @@ export default function RemindersScreen() {
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
+   useEffect(() => {
+    if (params.member) {
+      // Handles both "Self" and "Me" so mock data matches properly
+      const target = params.member === 'Self' ? 'Me' : params.member;
+      
+      const found = FAMILY_MEMBERS.find(
+        (m: string) => m.toLowerCase() === target.toLowerCase()
+      );
+
+      const finalMember = found || target;
+      queueMicrotask(() => {
+        setSelectedMember(finalMember);
+        setPendingMember(finalMember);
+      });
+    }
+  }, [params.member]);
+  
   useEffect(() => {
     let isMounted = true;
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((saved) => {
-        if (!isMounted) return;
+        .then((saved) => {
+          if (!isMounted) return;
         if (saved) {
           const parsed: unknown = JSON.parse(saved);
           if (
@@ -219,7 +238,7 @@ export default function RemindersScreen() {
         <View style={styles.loading}>
           <ActivityIndicator color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
-            Loading remindersΓÇª
+            Loading reminders...
           </Text>
         </View>
       ) : (

@@ -1,6 +1,8 @@
 // Logged-in profile + that profile's upcoming reminders (for Home).
 //
 // - Logged-in profile: the one picked on Choose Profile (MockAuth, Profile team).
+// - Current profile (useCurrentProfile): same person, but from ProfileContext, so it
+//   updates right away when the user switches profile or edits their name/avatar.
 // - Reminders: the SAME list the Reminders tab shows (Reminders team saves it on the phone
 //   under 'mediscan.reminders.v1'). Home only READS it, so the two screens always match.
 //   A reminder belongs to a profile when reminder.member === profile.profile_display_name
@@ -9,10 +11,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { SAMPLE_REMINDERS, type Reminder } from '@/components/reminderTypes';
+import { useProfile } from '@/context/ProfileContext';
 import { MockAuth, type Profile } from '@/mock/mockAuth';
 
 // Same key as src/app/(tabs)/reminders.tsx (keep them in sync).
 export const REMINDERS_STORAGE_KEY = 'mediscan.reminders.v1';
+
+export function useCurrentProfile() {
+  // Updates right away when the user switches profile or edits their name/avatar
+  return useProfile().activeProfile;
+}
 
 export function useLoggedInProfile(): Profile | null {
   return MockAuth.getActiveProfile();
