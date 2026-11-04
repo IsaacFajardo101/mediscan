@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import QuitEditingModal from '@/components/QuitEditingModal';
@@ -20,7 +20,6 @@ const FORMS = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Drops'];
 // returns to Scan Result) comes from AppHeader via app/_layout.tsx.
 export default function EditMedicineScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const match = findPossibleMatch(id);
@@ -35,29 +34,26 @@ export default function EditMedicineScreen() {
   const [quitOpen, setQuitOpen] = useState(false);
 
   // Leaving the screen (header back arrow, Android back, swipe back) asks "Leave page?" first.
-  // `pendingLeave` holds the blocked navigation action until the user taps Yes. `allowLeave` lets
-  // navigation through after Yes, and after saving (the medicine is saved, so nothing to quit).
-  const pendingLeave = useRef<Parameters<typeof navigation.dispatch>[0] | null>(null);
-  const allowLeave = useRef(false);
+  // Uses usePreventRemove (Expo Router SDK 58; the old `beforeRemove` event was removed). While
+  // `preventLeave` is true the blocked navigation is kept in `repeatLeave` until the user taps Yes.
+  // It is set to false after Yes, and after saving (the medicine is saved, so nothing to quit).
+  const [preventLeave, setPreventLeave] = useState(true);
+  const repeatLeave = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    return navigation.addListener('beforeRemove', (e) => {
-      if (allowLeave.current) return;
-      e.preventDefault();
-      pendingLeave.current = e.data.action;
-      setQuitOpen(true);
-    });
-  }, [navigation]);
+  usePreventRemove(preventLeave, ({ repeat }) => {
+    repeatLeave.current = repeat;
+    setQuitOpen(true);
+  });
 
   const confirmQuit = () => {
-    allowLeave.current = true;
+    setPreventLeave(false);
     setQuitOpen(false);
-    if (pendingLeave.current) navigation.dispatch(pendingLeave.current);
+    repeatLeave.current?.();
   };
 
   // TODO: actually save the medicine to the vault. For now Save to Vault only shows the Medicine Added overlay.
   const onSave = () => {
-    allowLeave.current = true;
+    setPreventLeave(false);
     setAddedOpen(true);
   };
 
