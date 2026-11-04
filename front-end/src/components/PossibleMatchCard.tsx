@@ -2,7 +2,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Assets } from '@/constants/assets';
 import { Colors, Radius, Spacing, Type } from '@/constants/display';
-import type { MatchImage, PossibleMatch } from '@/data/mockScanResults';
+import type { PossibleMatch } from '@/data/mockScanResults';
+import { getMedicineForm } from '@/utils/medicine';
+import MedicineIcon from './medicine/MedicineIcon';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const Amber = '#E89C38';
@@ -16,27 +18,11 @@ type Props = {
   onPress?: () => void; // leave out for a card that is not tappable
 };
 
-// Photo inside a 95x80 slot, optionally zoomed/cropped like in Figma.
-function MatchPhoto({ image }: { image: MatchImage }) {
-  const { source, width, height, crop } = image;
-  return (
-    <View style={styles.photoSlot}>
-      <View style={{ width, height, overflow: 'hidden' }}>
-        <Image
-          source={source}
-          contentFit={crop ? 'fill' : 'cover'}
-          style={crop ? { position: 'absolute', ...crop } : { width: '100%', height: '100%' }}
-        />
-      </View>
-    </View>
-  );
-}
-
-// One medicine card: photo, name, category and similarity.
+// One medicine card: icon for the medicine form, name, category and similarity.
 export default function PossibleMatchCard({ match, selected, showCheck, onPress }: Props) {
   const content = (
     <>
-      <MatchPhoto image={match.image} />
+      <MedicineIcon form={getMedicineForm(match.form)} size={96} />
       <View style={styles.text}>
         <View>
           <Text style={styles.name} numberOfLines={1}>{match.name}</Text>
@@ -85,7 +71,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.actionPrimary,
   },
-  photoSlot: { width: 95, height: 80, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: Spacing.sm + 2 },
   name: { ...Type.label, color: Colors.textPrimary },
   category: { ...Type.caption, color: SubtleText },

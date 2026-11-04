@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
+import MedicineIcon from '@/components/medicine/MedicineIcon';
 import MedicineInfoCard from '@/components/MedicineInfoCard';
 import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Spacing, Type } from '@/constants/display';
 import { findPossibleMatch, isScanState, mockScanResults } from '@/data/mockScanResults';
+import { getMedicineForm } from '@/utils/medicine';
 
 // Colors used only by this Figma frame that are not in the display.ts tokens yet.
 const CategoryText = '#938B8B';
@@ -45,7 +46,7 @@ export default function ResultScreen() {
               confidence={result.confidence}
             />
             <View style={styles.label}>
-              <Image source={result.medicine.image} style={styles.medicineImage} contentFit="contain" />
+              <MedicineIcon form={getMedicineForm(result.medicine.form)} size={96} />
               <View style={styles.labelText}>
                 <Text style={styles.medicineName}>{result.medicine.name}</Text>
                 <Text style={styles.medicineCategory}>{result.medicine.category}</Text>
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.md, flexGrow: 1 },
 
   label: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.sm },
-  medicineImage: { width: 114, height: 120 },
   labelText: { flex: 1, gap: Spacing.sm },
   medicineName: { ...Type.h3, color: Colors.textPrimary },
   medicineCategory: { ...Type.body, color: CategoryText },
