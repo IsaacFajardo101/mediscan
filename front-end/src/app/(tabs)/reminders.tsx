@@ -27,8 +27,9 @@ const STORAGE_KEY = 'mediscan.reminders.v1';
 export default function RemindersScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openAdd?: string }>();
+  const params = useLocalSearchParams<{ openAdd?: string; member?: string; reminderId?: string; from?: string }>();
   const handledAddParam = useRef('');
+  const returnHomeRef = useRef(false); // [Home+Vault] go back to Home when details opened from Home are closed
   const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState('');
@@ -86,6 +87,29 @@ export default function RemindersScreen() {
     }
   }, [params.openAdd]);
 
+  // [Home+Vault] Opened from Home > Upcoming Reminders:
+  //   member     -> show only that profile's reminders (logged-in profile)
+  //   reminderId -> also open that reminder's details right away
+  useEffect(() => {
+    if (!loaded) return;
+    const { member, reminderId, from } = params;
+    if (!member && !reminderId) return;
+    if (member) {
+      setSelectedMember(member);
+      setPendingMember(member);
+      setShowAll(true);
+    }
+    if (reminderId) {
+      const found = reminders.find((item) => item.id === reminderId);
+      if (found) {
+        setEditingReminder(found);
+        setEditorVisible(true);
+        returnHomeRef.current = from === 'home';
+      }
+    }
+    router.setParams({ member: undefined, reminderId: undefined, from: undefined });
+  }, [loaded, params.member, params.reminderId, params.from, reminders]);
+
   const persist = async (next: Reminder[]) => {
     setReminders(next);
     try {
@@ -122,6 +146,7 @@ export default function RemindersScreen() {
     void persist(next);
     setEditorVisible(false);
     setEditingReminder(null);
+    returnHomeRef.current = false;
     setSuccessMessage(isEditing ? 'Changes saved' : 'Reminder added');
   };
 
@@ -129,6 +154,7 @@ export default function RemindersScreen() {
     void persist(reminders.filter((item) => item.id !== id));
     setEditorVisible(false);
     setEditingReminder(null);
+    returnHomeRef.current = false;
     setSuccessMessage('Reminder deleted');
   };
 
@@ -343,6 +369,10 @@ export default function RemindersScreen() {
         onClose={() => {
           setEditorVisible(false);
           setEditingReminder(null);
+          if (returnHomeRef.current) {
+            returnHomeRef.current = false; // [Home+Vault] opened from Home -> back to Home
+            router.navigate('/(tabs)');
+          }
         }}
         onSave={saveReminder}
         onDelete={deleteReminder}

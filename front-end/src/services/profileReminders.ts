@@ -1,111 +1,126 @@
-// Current profile + that profile's upcoming reminders (for Home).
+// Logged-in profile + that profile's upcoming reminders (for Home).
 //
-// TEMP: the Profile team owns "which profile is selected". Until their code is merged,
-// this reads the profile id from AsyncStorage key 'mediscan.currentProfileId'
-// (if they save the selected profile there, Home will follow it automatically),
-// otherwise it uses the first profile in the shared mock.
-// Reminders belong to the Reminders team; this only READS the shared reminder mock.
+// - Logged-in profile: the one picked on Choose Profile (MockAuth, Profile team).
+// - Reminders: the SAME list the Reminders tab shows (Reminders team saves it on the phone
+//   under 'mediscan.reminders.v1'). Home only READS it, so the two screens always match.
+//   A reminder belongs to a profile when reminder.member === profile.profile_display_name
+//   (e.g. "Me", "Mama"), which is how the Reminders tab's member filter works too.
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
-import { getMockProfiles, getMockReminders } from '@/mock';
-import type { Profile, ReminderSchedule, VaultMedicine } from '@/types/medicine';
-import { formatTime, parseDate } from '@/utils/medicine';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { SAMPLE_REMINDERS, type Reminder } from '@/components/reminderTypes';
+import { MockAuth, type Profile } from '@/mock/mockAuth';
 
-export const CURRENT_PROFILE_KEY = 'mediscan.currentProfileId';
+// Same key as src/app/(tabs)/reminders.tsx (keep them in sync).
+export const REMINDERS_STORAGE_KEY = 'mediscan.reminders.v1';
 
-export function useCurrentProfile(): Profile | null {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const profiles = getMockProfiles();
-      let id: string | null = null;
-      try {
-        id = await AsyncStorage.getItem(CURRENT_PROFILE_KEY);
-      } catch {
-        id = null;
-      }
-      const found = profiles.find((p) => String(p.profile_id) === id) ?? profiles[0] ?? null;
-      if (alive) setProfile(found);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return profile;
+export function useLoggedInProfile(): Profile | null {
+  return MockAuth.getActiveProfile();
 }
 
-// "Maria Batumbakal" -> "Maria"
-export function firstName(p: Profile | null): string {
-  const name = p?.profile_fullname?.trim() ?? '';
+// "Jane Doe" -> "Jane"
+export function firstName(p: Pick<Profile, 'profile_fullname' | 'profile_display_name'> | null): string {
+  const name = p?.profile_fullname?.trim() || p?.profile_display_name?.trim() || '';
   return name.split(/\s+/)[0] || 'there';
 }
 
+// Reads the reminders again every time Home comes into view, so edits made on the
+// Reminders tab show up right away.
+export function useSavedReminders(): Reminder[] {
+  const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      AsyncStorage.getItem(REMINDERS_STORAGE_KEY)
+        .then((saved) => {
+          if (!alive || !saved) return;
+          const parsed: unknown = JSON.parse(saved);
+          if (Array.isArray(parsed)) setReminders(parsed as Reminder[]);
+        })
+        .catch((e) => console.log('[home] could not read reminders', e));
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+  return reminders;
+}
+
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+// "Aug 13, 2026" -> Date (local midnight), null if it can't be read
+export function parseStartDate(text: string | undefined): Date | null {
+  const m = /^([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})$/.exec((text ?? '').trim());
+  if (!m) return null;
+  const month = MONTHS.indexOf(m[1].toLowerCase());
+  if (month < 0) return null;
+  return new Date(Number(m[3]), month, Number(m[2]));
+}
+
+// "6:00 AM" -> { h: 6, m: 0 }, null if it can't be read
+export function parseTime(text: string | undefined): { h: number; m: number } | null {
+  const m = /^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/.exec((text ?? '').trim());
+  if (!m) return null;
+  let h = Number(m[1]) % 12;
+  if (m[3].toUpperCase() === 'PM') h += 12;
+  return { h, m: Number(m[2]) };
+}
+
 export type UpcomingReminder = {
-  schedule: ReminderSchedule;
-  medicine: VaultMedicine | null;
-  next: Date | null;   // next time it will ring (null = "as needed" / no time)
-  label: string;       // "Today, 8:00 PM" / "Tomorrow, 8:00 AM" / "As needed"
+  reminder: Reminder;
+  next: Date | null; // next time it rings (null = "As needed" or no time)
+  label: string;     // "Today, 8:00 PM" / "Tomorrow, 6:00 AM" / "Aug 20, 6:00 AM" / "As needed"
 };
 
-// Next ring time for a schedule. Daily is exact; other frequencies use the next listed time
-// (the Reminders team owns the full frequency logic).
-export function nextOccurrence(s: ReminderSchedule, now = new Date()): Date | null {
-  if (!s.sched_reminder_time.length) return null;
-  const start = parseDate(s.sched_start_date);
-  const end = parseDate(s.sched_end_date);
-  if (end) end.setHours(23, 59, 59, 999);
+// Next ring time. Daily: today or tomorrow. Weekly: same weekday as the start date.
+export function nextOccurrence(r: Reminder, now = new Date()): Date | null {
+  if (r.frequency === 'As needed') return null;
+  const t = parseTime(r.time);
+  if (!t) return null;
+  const start = parseStartDate(r.startDate);
+  const step = r.frequency === 'Weekly' ? 7 : 1;
 
-  for (let dayOffset = 0; dayOffset < 8; dayOffset++) {
-    const day = new Date(now);
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() + dayOffset);
-    if (start && day < start) continue;
-    const times = [...s.sched_reminder_time].sort();
-    for (const t of times) {
-      const [h, m] = t.split(':').map(Number);
-      const at = new Date(day);
-      at.setHours(h || 0, m || 0, 0, 0);
-      if (at <= now) continue;
-      if (end && at > end) return null;
-      return at;
-    }
+  // first candidate day = start date (if in the future) or today
+  const day = new Date(now);
+  day.setHours(0, 0, 0, 0);
+  if (start && start > day) day.setTime(start.getTime());
+  if (step === 7 && start) {
+    while (day.getDay() !== start.getDay()) day.setDate(day.getDate() + 1);
+  }
+  for (let i = 0; i < 3; i++) {
+    const at = new Date(day);
+    at.setHours(t.h, t.m, 0, 0);
+    if (at > now) return at;
+    day.setDate(day.getDate() + step);
   }
   return null;
 }
 
-function whenLabel(next: Date | null, s: ReminderSchedule, now = new Date()): string {
-  if (!next) return s.sched_frequency_type || 'As needed';
+function label(r: Reminder, next: Date | null, now = new Date()): string {
+  if (!next) return r.frequency === 'As needed' ? 'As needed' : r.time || '—';
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const d = new Date(next);
   d.setHours(0, 0, 0, 0);
   const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
-  const time = formatTime(`${next.getHours()}:${String(next.getMinutes()).padStart(2, '0')}`);
-  if (diff === 0) return `Today, ${time}`;
-  if (diff === 1) return `Tomorrow, ${time}`;
-  return `${d.toDateString().slice(4, 10)}, ${time}`;
+  if (diff === 0) return `Today, ${r.time}`;
+  if (diff === 1) return `Tomorrow, ${r.time}`;
+  return `${MONTHS[d.getMonth()][0].toUpperCase()}${MONTHS[d.getMonth()].slice(1)} ${d.getDate()}, ${r.time}`;
 }
 
-// Active reminders of one profile, soonest first.
+// Turned-on reminders of one profile, soonest first ("As needed" ones last).
 export function getUpcomingReminders(
-  profileId: number | string | null,
-  medicines: VaultMedicine[],
+  reminders: Reminder[],
+  profile: Pick<Profile, 'profile_display_name'> | null,
   now = new Date(),
 ): UpcomingReminder[] {
-  if (profileId === null) return [];
-  return getMockReminders()
-    .filter((s) => s.sched_is_active && String(s.profile_id) === String(profileId))
-    .map((s) => {
-      const next = nextOccurrence(s, now);
-      return {
-        schedule: s,
-        medicine: medicines.find((m) => m.fda_registration_id === s.fda_registration_id) ?? null,
-        next,
-        label: whenLabel(next, s, now),
-      };
+  if (!profile) return [];
+  const member = profile.profile_display_name.trim().toLowerCase();
+  return reminders
+    .filter((r) => r.enabled && (r.member ?? '').trim().toLowerCase() === member)
+    .map((r) => {
+      const next = nextOccurrence(r, now);
+      return { reminder: r, next, label: label(r, next, now) };
     })
-    // keep "as needed" ones, drop ones that already ended
-    .filter((r) => r.next !== null || r.schedule.sched_reminder_time.length === 0)
     .sort((a, b) => (a.next?.getTime() ?? Infinity) - (b.next?.getTime() ?? Infinity));
 }
