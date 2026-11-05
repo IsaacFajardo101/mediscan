@@ -8,12 +8,23 @@ export type Reminder = {
   time: string;
   frequency: ReminderFrequency;
   startDate: string;
-  member: string;
-  notes: string;
+members: string[];  
+notes: string;
   enabled: boolean;
 };
 
 export type ReminderDraft = Omit<Reminder, 'id'> & { id?: string };
+
+export type SavedMedicine = {
+  id: string;
+  name: string;
+  category: string;
+  instructions: string;
+  expiryDate: string;
+  notes: string;
+};
+
+export const SAVED_MEDICINES_KEY = 'mediscan.medicines.v1';
 
 export const FAMILY_MEMBERS = ['Me', 'Mama', 'Papa', 'Sis', 'Brother'];
 
@@ -34,7 +45,7 @@ export const SAMPLE_REMINDERS: Reminder[] = [
     time: '6:00 AM',
     frequency: 'Daily',
     startDate: 'Aug 13, 2026',
-    member: 'Mama',
+    members: ['Mama'],
     notes: '',
     enabled: true,
   },
@@ -46,7 +57,7 @@ export const SAMPLE_REMINDERS: Reminder[] = [
     time: '12:00 PM',
     frequency: 'Daily',
     startDate: 'Aug 13, 2026',
-    member: 'Mama',
+    members: ['Mama'],
     notes: '',
     enabled: true,
   },
@@ -58,7 +69,7 @@ export const SAMPLE_REMINDERS: Reminder[] = [
     time: '8:00 PM',
     frequency: 'As needed',
     startDate: 'Aug 13, 2026',
-    member: 'Me',
+    members: ['Me'],
     notes: '',
     enabled: true,
   },

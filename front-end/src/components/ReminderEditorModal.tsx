@@ -45,7 +45,7 @@ export default function ReminderEditorModal({
   const [startDate, setStartDate] = useState(
     reminder?.startDate ?? 'Aug 13, 2026',
   );
-  const [member, setMember] = useState(reminder?.member ?? 'Me');
+  const [members, setMembers] = useState<string[]>(reminder?.members ?? []);
   const [notes, setNotes] = useState(reminder?.notes ?? '');
   const [medicinePickerOpen, setMedicinePickerOpen] = useState(false);
   const [medicineSearch, setMedicineSearch] = useState('');
@@ -53,6 +53,18 @@ export default function ReminderEditorModal({
   const [memberOpen, setMemberOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
+
+  const toggleMember = (name: string) =>
+  setMembers((prev) =>
+    prev.includes(name) ? prev.filter((m) => m !== name) : [...prev, name],
+  );
+
+  const membersLabel =
+  members.length === 0
+    ? 'Select'
+    : members.length <= 2
+      ? members.join(', ')
+      : `${members.length} selected`;
 
   const selectedMedicine = MEDICINES.find((item) => item.name === medicine);
   const filteredMedicines = useMemo(
@@ -86,7 +98,7 @@ export default function ReminderEditorModal({
       time: time.trim(),
       frequency,
       startDate: startDate.trim(),
-      member,
+      members,
       notes: notes.trim(),
       enabled: reminder?.enabled ?? true,
     });
@@ -280,8 +292,7 @@ export default function ReminderEditorModal({
                 style={[styles.selectField, borderColor]}
               >
                 <Text style={[styles.selectText, { color: colors.foreground }]}>
-                  {member}
-                </Text>
+                <Text numberOfLines={1}>{membersLabel}</Text>                </Text>
                 <Ionicons
                   name={memberOpen ? 'chevron-up' : 'chevron-down'}
                   size={15}
@@ -290,32 +301,40 @@ export default function ReminderEditorModal({
               </Pressable>
             </View>
             {memberOpen ? (
-              <View style={styles.memberOptions}>
-                {FAMILY_MEMBERS.map((person) => (
-                  <Pressable
-                    key={person}
-                    testID={`member-${person.toLowerCase()}`}
-                    onPress={() => {
-                      setMember(person);
-                      setMemberOpen(false);
-                    }}
-                    style={[
-                      styles.memberOption,
-                      { borderColor: colors.border },
-                      member === person && { backgroundColor: colors.accent },
-                    ]}
-                  >
-                    <Text style={[styles.memberText, { color: colors.foreground }]}>
-                      {person}
-                    </Text>
-                    <Ionicons
-                      name={member === person ? 'radio-button-on' : 'radio-button-off'}
-                      size={19}
-                      color={member === person ? colors.primary : colors.border}
-                    />
-                  </Pressable>
-                ))}
-              </View>
+                <View style={{ gap: 8, marginTop: 8 }}>
+  {['Me', ...FAMILY_MEMBERS.filter((n) => n !== 'Me')].map((name) => {
+    const selected = members.includes(name);
+    return (
+      <Pressable
+        key={name}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected }}
+        onPress={() => toggleMember(name)}
+        style={{
+          width: '100%',                    // 🟢 full width = new line
+          minHeight: 44,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 14,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: selected ? colors.todayBorder : colors.border,
+          backgroundColor: selected ? colors.accent : colors.card,
+        }}
+      >
+        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.foreground }}>
+          {name}
+        </Text>
+        <Ionicons
+          name={selected ? 'checkbox' : 'square-outline'}
+          size={20}
+          color={selected ? colors.todayForeground : colors.border}
+        />
+      </Pressable>
+    );
+  })}
+</View>
             ) : null}
 
             <View style={styles.notesHeader}>
@@ -536,8 +555,11 @@ export default function ReminderEditorModal({
         ) : null}
       </View>
     </Modal>
+
+    
   );
 }
+
 
 const styles = StyleSheet.create({
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
