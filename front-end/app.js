@@ -72,6 +72,26 @@ const responseOutput = document.querySelector("#response-output");
 const responseStatus = document.querySelector("#response-status");
 const apiStatus = document.querySelector("#api-status");
 const accessTokenInput = document.querySelector("#access-token-input");
+const ocrImageInput = document.querySelector("#ocr-image-input");
+const ocrCameraInput = document.querySelector("#ocr-camera-input");
+const ocrCameraButton = document.querySelector("#ocr-camera-button");
+const cameraView = document.querySelector("#camera-view");
+const cameraVideo = document.querySelector("#camera-video");
+const capturePhotoButton = document.querySelector("#capture-photo-button");
+const closeCameraButton = document.querySelector("#close-camera-button");
+const ocrImagePreview = document.querySelector("#ocr-image-preview");
+const ocrPreviewWrap = document.querySelector("#ocr-preview-wrap");
+const ocrSubmitButton = document.querySelector("#ocr-submit-button");
+const ocrResponsePanel = document.querySelector("#ocr-response-panel");
+const ocrResponseStatus = document.querySelector("#ocr-response-status");
+const ocrResponseOutput = document.querySelector("#ocr-response-output");
+const ocrConfidence = document.querySelector("#ocr-confidence");
+const ocrConfidenceValue = document.querySelector("#ocr-confidence-value");
+const ocrConfidenceFill = document.querySelector("#ocr-confidence-fill");
+const ocrConfidenceLevel = document.querySelector("#ocr-confidence-level");
+const ocrConfidenceGuidance = document.querySelector("#ocr-confidence-guidance");
+let selectedOcrFile = null;
+let cameraStream = null;
 
 accessTokenInput.value = sessionStorage.getItem("mediscan_access_token") || "";
 accessTokenInput.addEventListener("input", () => {
@@ -182,6 +202,117 @@ submitButton.addEventListener("click", async () => {
     responseOutput.textContent = error.message;
   } finally {
     submitButton.disabled = false;
+  }
+});
+
+function selectOcrFile(input) {
+  selectedOcrFile = input.files?.[0] || null;
+  ocrSubmitButton.disabled = !selectedOcrFile;
+  ocrResponsePanel.hidden = !selectedOcrFile;
+
+  if (!selectedOcrFile) {
+    ocrPreviewWrap.hidden = true;
+    ocrImagePreview.removeAttribute("src");
+    return;
+  }
+
+  const previewUrl = URL.createObjectURL(selectedOcrFile);
+  ocrImagePreview.src = previewUrl;
+  ocrPreviewWrap.hidden = false;
+}
+
+ocrImageInput.addEventListener("change", () => selectOcrFile(ocrImageInput));
+ocrCameraInput.addEventListener("change", () => selectOcrFile(ocrCameraInput));
+ocrCameraButton.addEventListener("click", async () => {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    ocrCameraInput.click();
+    return;
+  }
+
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+    cameraVideo.srcObject = cameraStream;
+    cameraView.hidden = false;
+    await cameraVideo.play();
+  } catch {
+    ocrCameraInput.click();
+  }
+});
+
+function closeCamera() {
+  cameraStream?.getTracks().forEach((track) => track.stop());
+  cameraStream = null;
+  cameraVideo.srcObject = null;
+  cameraView.hidden = true;
+}
+
+closeCameraButton.addEventListener("click", closeCamera);
+capturePhotoButton.addEventListener("click", () => {
+  if (!cameraStream || !cameraVideo.videoWidth) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = cameraVideo.videoWidth;
+  canvas.height = cameraVideo.videoHeight;
+  canvas.getContext("2d").drawImage(cameraVideo, 0, 0);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const file = new File([blob], `medicine-${Date.now()}.jpg`, {
+      type: "image/jpeg",
+    });
+    selectedOcrFile = file;
+    ocrSubmitButton.disabled = false;
+    ocrResponsePanel.hidden = false;
+    ocrImagePreview.src = URL.createObjectURL(file);
+    ocrPreviewWrap.hidden = false;
+    closeCamera();
+  }, "image/jpeg", 0.92);
+});
+
+ocrSubmitButton.addEventListener("click", async () => {
+  if (!selectedOcrFile) return;
+
+  const formData = new FormData();
+  // The FastAPI endpoint currently names this multipart field "file".
+  formData.append("file", selectedOcrFile, selectedOcrFile.name || "medicine-label.jpg");
+  ocrSubmitButton.disabled = true;
+  ocrResponseStatus.textContent = "Scanning…";
+  ocrResponseStatus.className = "response-status";
+  ocrResponseOutput.textContent = "Waiting for the OCR service…";
+
+  try {
+    const response = await fetch("/api/v1/ocr/extract-label", {
+      method: "POST",
+      body: formData,
+    });
+    const result = await response.json();
+    ocrResponseStatus.textContent = `${response.status} ${response.statusText}`;
+    ocrResponseStatus.className = `response-status ${response.ok ? "success" : "error"}`;
+    const suggestion = result.suggested_medicines?.[0];
+    if (suggestion) {
+      ocrConfidence.hidden = false;
+      ocrConfidence.className = `ocr-confidence ${suggestion.confidence_level}`;
+      ocrConfidenceValue.textContent = `${suggestion.confidence_percentage}%`;
+      ocrConfidenceFill.style.width = `${suggestion.confidence_percentage}%`;
+      ocrConfidenceLevel.textContent = suggestion.confidence_level.toUpperCase();
+      ocrConfidenceGuidance.textContent = suggestion.accuracy_guidance;
+    } else {
+      ocrConfidence.hidden = false;
+      ocrConfidence.className = "ocr-confidence low";
+      ocrConfidenceValue.textContent = "0%";
+      ocrConfidenceFill.style.width = "0%";
+      ocrConfidenceLevel.textContent = "LOW";
+      ocrConfidenceGuidance.textContent = "No confident match. Use a clear, well-lit photo showing the full brand or generic name and dosage.";
+    }
+    ocrResponseOutput.textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    ocrResponseStatus.textContent = "Request failed";
+    ocrResponseStatus.className = "response-status error";
+    ocrResponseOutput.textContent = error.message;
+  } finally {
+    ocrSubmitButton.disabled = false;
   }
 });
 
