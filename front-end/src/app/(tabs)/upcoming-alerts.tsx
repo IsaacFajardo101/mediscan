@@ -138,6 +138,17 @@ const FILTERS: FilterStatus[] = [
 export default function UpcomingAlertsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
+
+useEffect(() => {
+  const updateTime = () => setCurrentTime(Date.now());
+
+  updateTime();
+
+  const interval = setInterval(updateTime, 60_000);
+
+  return () => clearInterval(interval);
+}, []);
   const [medicines, setMedicines] = useState<MedicineItem[]>(() =>
     SAMPLE_MEDICINES.map((item) => ({
       ...item,
@@ -694,7 +705,8 @@ export default function UpcomingAlertsScreen() {
                       </Text>
                     </View>
                   )}
-                  {alertPreferences.snoozedUntil[medicine.id] > Date.now() ? (
+                  {currentTime !== null &&
+                    alertPreferences.snoozedUntil[medicine.id] > currentTime ? (
                     <View style={styles.expiryRow}>
                       <Ionicons name="time-outline" size={11} color={colors.mutedForeground} />
                       <Text style={[styles.expiryText, { color: colors.mutedForeground }]}>
@@ -799,6 +811,7 @@ export default function UpcomingAlertsScreen() {
 
       <MedicineDetailsModal
         medicine={detailsMedicine}
+        currentTime={currentTime}
         snoozedUntil={
           detailsMedicine
             ? alertPreferences.snoozedUntil[detailsMedicine.id]
@@ -1448,12 +1461,14 @@ function DeleteConfirmationModal({
 function MedicineDetailsModal({
   medicine,
   snoozedUntil,
+  currentTime,
   onClose,
   colors,
   bottomInset,
 }: {
   medicine: MedicineItem | null;
   snoozedUntil?: number;
+  currentTime: number | null;
   onClose: () => void;
   colors: ReturnType<typeof useColors>;
   bottomInset: number;
@@ -1488,7 +1503,9 @@ function MedicineDetailsModal({
                 {medicine.status}
               </Text>
             </View>
-            {snoozedUntil && snoozedUntil > Date.now() ? (
+            {currentTime !== null &&
+              snoozedUntil &&
+              snoozedUntil > currentTime ? (
               <View style={[styles.detailLine, { borderColor: colors.border }]}>
                 <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
                   Alert

@@ -230,15 +230,15 @@ export default function RemindersScreen() {
               Upcoming Alerts
             </Text>
             <Pressable
-              accessibilityRole="button"
-              testID="toggle-all-reminders"
-              onPress={() => setShowAll((value) => !value)}
-              hitSlop={8}
-            >
-              <Text style={[styles.viewAll, { color: colors.primary }]}>
-                {showAll ? 'Show Less' : 'View All'}
-              </Text>
-            </Pressable>
+            accessibilityRole="button"
+            testID="toggle-all-reminders"
+            onPress={() => router.navigate('/(tabs)/upcoming-alerts' as never)}
+            hitSlop={8}
+          >
+            <Text style={[styles.viewAll, { color: colors.primary }]}>
+              See All
+            </Text>
+          </Pressable>
           </View>
 
           <View style={styles.summaryRow}>

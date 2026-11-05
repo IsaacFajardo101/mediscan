@@ -129,6 +129,13 @@ export default function TabsLayout() {
             header: () => <RemindersHeader />,
           }}
         />
+        <Tabs.Screen
+  name="upcoming-alerts"
+  options={{
+    headerShown: false,
+    tabBarButton: () => null,
+  }}
+/>
         <Tabs.Screen name="profiles" options={{ ...tab('Family Profile', icons.profiles), tabBarLabel: 'Profiles' }} />
       </Tabs>
     </HeaderFilterProvider>
