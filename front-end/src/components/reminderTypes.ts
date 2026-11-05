@@ -1,4 +1,5 @@
-﻿export type ReminderFrequency = 'Daily' | 'Weekly' | 'As needed';
+
+export type ReminderFrequency = 'Daily' | 'Weekly' | 'As needed';
 
 export type Reminder = {
   id: string;
@@ -8,8 +9,8 @@ export type Reminder = {
   time: string;
   frequency: ReminderFrequency;
   startDate: string;
-members: string[];  
-notes: string;
+  members: string[];
+  notes: string;
   enabled: boolean;
 };
 

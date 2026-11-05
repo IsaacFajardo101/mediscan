@@ -1,4 +1,5 @@
-﻿/**
+
+/**
  * Semantic design tokens for the mobile app.
  *
  * These tokens mirror the naming conventions used in web artifacts (index.css)
@@ -26,23 +27,23 @@ const colors = {
     card: '#FFFFFF',
     cardForeground: '#173A36',
 
-    // Primary action color (buttons, links, active states)
+    // Primary action color
     primary: '#183D38',
     primaryForeground: '#FFFFFF',
 
-    // Secondary / less-emphasis interactive surfaces
+    // Secondary surfaces
     secondary: '#EAF1EE',
     secondaryForeground: '#24443F',
 
-    // Muted / subdued elements (dividers, timestamps, placeholders)
+    // Muted elements
     muted: '#EDF2F0',
     mutedForeground: '#71817D',
 
-    // Accent highlights (badges, selected items, focus rings)
+    // Accent highlights
     accent: '#DCEFE5',
     accentForeground: '#173A36',
 
-    // Destructive actions (delete, error states)
+    // Destructive actions
     destructive: '#CE3D39',
     destructiveForeground: '#FFFFFF',
 
@@ -50,7 +51,7 @@ const colors = {
     border: '#DCE4E1',
     input: '#DCE4E1',
 
-    // Dashboard status colors used by reminder summary cards.
+    // Dashboard status colors
     expiredBackground: '#F5DADD',
     expiredBorder: '#CD858A',
     expiredForeground: '#9F404A',
@@ -70,8 +71,7 @@ const colors = {
     shadow: '#163A36',
   },
 
-  // Border radius (in px). Sync from the sibling web artifact's --radius
-  // CSS variable. This value applies to cards, buttons, inputs, and modals.
+  // Border radius in px
   radius: 8,
 };
 
