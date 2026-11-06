@@ -1,3 +1,4 @@
+import { useAppSettings } from '@/services/appSettings';
 import { Ionicons } from "@expo/vector-icons";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -51,6 +52,7 @@ async function scanImage(base64: string): Promise<ScanState> {
 export default function CameraScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
+  const [appSettings, appSettingsReady] = useAppSettings();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
@@ -159,7 +161,22 @@ export default function CameraScreen() {
 
     handleImage(result.assets[0].uri);
   };
-
+  // 0) Camera Access turned off in Settings > Privacy
+  if (appSettingsReady && !appSettings.cameraEnabled) {
+    return (
+      <SafeAreaView style={styles.permWrap}>
+        <Ionicons name="camera-outline" size={48} color="#444" />
+        <Text style={styles.permTitle}>Camera access is off</Text>
+        <Text style={styles.permBody}>Turn on Camera Access in Settings &gt; Privacy to scan medicines.</Text>
+        <Pressable style={styles.permBtn} onPress={() => router.push('/settings' as any)}>
+          <Text style={styles.permBtnText}>Open Settings</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Text style={styles.permLink}>Go back</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
   // 1) Camera permission status still loading
   if (!permission) return <View style={styles.permWrap} />;
 
