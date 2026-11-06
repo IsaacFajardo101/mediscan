@@ -1,4 +1,5 @@
-﻿import { useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
+
 import colors from "@/constants/colors";
 
 /**

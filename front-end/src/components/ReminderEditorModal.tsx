@@ -45,7 +45,7 @@ export default function ReminderEditorModal({
   const [startDate, setStartDate] = useState(
     reminder?.startDate ?? 'Aug 13, 2026',
   );
-  const [member, setMember] = useState(reminder?.member ?? 'Me');
+  const [members, setMembers] = useState<string[]>(reminder?.members ?? []);
   const [notes, setNotes] = useState(reminder?.notes ?? '');
   const [medicinePickerOpen, setMedicinePickerOpen] = useState(false);
   const [medicineSearch, setMedicineSearch] = useState('');
@@ -53,6 +53,22 @@ export default function ReminderEditorModal({
   const [memberOpen, setMemberOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
+
+  const toggleMember = (name: string) =>
+    setMembers((prev) =>
+      prev.includes(name) ? prev.filter((m) => m !== name) : [...prev, name],
+    );
+
+  const membersLabel =
+    members.length === 0
+      ? 'Select'
+      : members.length <= 2
+        ? members.join(', ')
+        : `${members.length} selected`;
+
+  const memberChoices = FAMILY_MEMBERS.includes('Me')
+    ? FAMILY_MEMBERS
+    : ['Me', ...FAMILY_MEMBERS];
 
   const selectedMedicine = MEDICINES.find((item) => item.name === medicine);
   const filteredMedicines = useMemo(
@@ -86,7 +102,7 @@ export default function ReminderEditorModal({
       time: time.trim(),
       frequency,
       startDate: startDate.trim(),
-      member,
+      members,
       notes: notes.trim(),
       enabled: reminder?.enabled ?? true,
     });
@@ -169,7 +185,7 @@ export default function ReminderEditorModal({
                 <Text style={[styles.medicineDescription, { color: colors.mutedForeground }]}>
                   {selectedMedicine?.category ?? 'Tap to select a medicine'}
                   {selectedMedicine?.instructions
-                    ? ` ┬╖ ${selectedMedicine.instructions}`
+                    ? ` · ${selectedMedicine.instructions}`
                     : ''}
                 </Text>
               </View>
@@ -279,8 +295,11 @@ export default function ReminderEditorModal({
                 onPress={() => setMemberOpen((open) => !open)}
                 style={[styles.selectField, borderColor]}
               >
-                <Text style={[styles.selectText, { color: colors.foreground }]}>
-                  {member}
+                <Text
+                  numberOfLines={1}
+                  style={[styles.selectText, { color: colors.foreground }]}
+                >
+                  {membersLabel}
                 </Text>
                 <Ionicons
                   name={memberOpen ? 'chevron-up' : 'chevron-down'}
@@ -291,30 +310,34 @@ export default function ReminderEditorModal({
             </View>
             {memberOpen ? (
               <View style={styles.memberOptions}>
-                {FAMILY_MEMBERS.map((person) => (
-                  <Pressable
-                    key={person}
-                    testID={`member-${person.toLowerCase()}`}
-                    onPress={() => {
-                      setMember(person);
-                      setMemberOpen(false);
-                    }}
-                    style={[
-                      styles.memberOption,
-                      { borderColor: colors.border },
-                      member === person && { backgroundColor: colors.accent },
-                    ]}
-                  >
-                    <Text style={[styles.memberText, { color: colors.foreground }]}>
-                      {person}
-                    </Text>
-                    <Ionicons
-                      name={member === person ? 'radio-button-on' : 'radio-button-off'}
-                      size={19}
-                      color={member === person ? colors.primary : colors.border}
-                    />
-                  </Pressable>
-                ))}
+                {memberChoices.map((name) => {
+                  const selected = members.includes(name);
+                  return (
+                    <Pressable
+                      key={name}
+                      testID={`member-${name.toLowerCase()}`}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      onPress={() => toggleMember(name)}
+                      style={[
+                        styles.memberOption,
+                        {
+                          borderColor: selected ? colors.todayBorder : colors.border,
+                          backgroundColor: selected ? colors.accent : colors.card,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.memberText, { color: colors.foreground }]}>
+                        {name}
+                      </Text>
+                      <Ionicons
+                        name={selected ? 'checkbox' : 'square-outline'}
+                        size={20}
+                        color={selected ? colors.todayForeground : colors.border}
+                      />
+                    </Pressable>
+                  );
+                })}
               </View>
             ) : null}
 
@@ -381,11 +404,11 @@ export default function ReminderEditorModal({
         </View>
 
         {medicinePickerOpen ? (
-        <View style={styles.pickerLayer}>
+          <View style={styles.pickerLayer}>
             <Pressable
               accessibilityLabel="Close medicine list"
               onPress={() => setMedicinePickerOpen(false)}
-            style={[styles.pickerBackdrop, { backgroundColor: colors.overlay }]}
+              style={[styles.pickerBackdrop, { backgroundColor: colors.overlay }]}
             />
             <View
               style={[
@@ -462,7 +485,7 @@ export default function ReminderEditorModal({
                           {item.name}
                         </Text>
                         <Text style={[styles.medicineDescription, { color: colors.mutedForeground }]}>
-                          {item.category} ┬╖ {item.instructions}
+                          {item.category} · {item.instructions}
                         </Text>
                       </View>
                       <Ionicons
@@ -631,17 +654,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   optionText: { fontSize: 11, fontWeight: '600' },
-  memberOptions: { gap: 6, paddingVertical: 8 },
+  memberOptions: { gap: 8, paddingVertical: 8 },
   memberOption: {
-    minHeight: 38,
+    width: '100%',
+    minHeight: 44,
     borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  memberText: { fontSize: 12, fontWeight: '600' },
+  memberText: { fontSize: 13, fontWeight: '600' },
   notesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
