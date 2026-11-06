@@ -9,7 +9,6 @@ import AppHeader from '@/components/AppHeader';
 import ReminderIcon from '@/components/ReminderIcon';
 import { Colors } from '@/constants/display';
 import { MockAuth } from '@/mock/mockAuth';
-// 🟢 NEW
 import { HeaderFilterProvider, useHeaderFilter } from '@/components/HeaderFilterContext';
 
 // ito yung tab bar layout na ginagamit sa buong app. It defines the bottom bar tabs, their icons, and the header for each screen.
@@ -28,7 +27,7 @@ const tab = (title: string, icon: (c: any) => any, showLogo = false) => ({
   tabBarIcon: ({ color }: { color: any }) => icon(color),
 });
 
-// 🟢 NEW: the ONE header for the reminders screen (back + title + filter + bell)
+// The ONE header for the reminders screen (back + title + filter + bell)
 function RemindersHeader() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -81,7 +80,7 @@ function RemindersHeader() {
           accessibilityRole="button"
           accessibilityLabel="Upcoming alerts"
           testID="header-bell"
-          onPress={() => router.push('/(tabs)/upcoming-alerts' as never)}
+          onPress={() => router.push('/upcoming-alerts' as never)}
           hitSlop={10}
         >
           <Ionicons name="notifications-outline" size={21} color={colors.foreground} />
@@ -95,7 +94,6 @@ export default function TabsLayout() {
   // START SCREEN: hangga't walang naka-login + napiling profile, Log In muna (walang tabs/icons).
   if (!MockAuth.getActiveProfile()) return <Redirect href="/login" />;
   return (
-    // 🟢 NEW: provider wraps the Tabs
     <HeaderFilterProvider>
       <Tabs
         backBehavior="history"
@@ -120,7 +118,6 @@ export default function TabsLayout() {
             tabBarStyle: { display: 'none' },
           }}
         />
-        {/* 🟢 CHANGED: was headerShown: false. Now uses the combined header */}
         <Tabs.Screen
           name="reminders"
           options={{
@@ -129,20 +126,12 @@ export default function TabsLayout() {
             header: () => <RemindersHeader />,
           }}
         />
-        <Tabs.Screen
-  name="upcoming-alerts"
-  options={{
-    headerShown: false,
-    tabBarButton: () => null,
-  }}
-/>
         <Tabs.Screen name="profiles" options={{ ...tab('Family Profile', icons.profiles), tabBarLabel: 'Profiles' }} />
       </Tabs>
     </HeaderFilterProvider>
   );
 }
 
-// 🔴 REMOVED: unused styles (container, bar, tab, tabLabel) and the unused AddMenu import
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',

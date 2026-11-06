@@ -33,7 +33,7 @@ export default function RemindersScreen() {
   const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState('');
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [filterVisible, setFilterVisible] = useState(false);
   const [selectedMember, setSelectedMember] = useState('All Members');
   const [pendingMember, setPendingMember] = useState('All Members');
@@ -107,8 +107,10 @@ export default function RemindersScreen() {
     const addRequest = params.openAdd;
     if (addRequest && addRequest !== handledAddParam.current) {
       handledAddParam.current = addRequest;
-      setEditingReminder(null);
-      setEditorVisible(true);
+      queueMicrotask(() => {
+        setEditingReminder(null);
+        setEditorVisible(true);
+      });
       router.setParams({ openAdd: undefined });
     }
   }, [params.openAdd]);
@@ -120,25 +122,32 @@ export default function RemindersScreen() {
     if (!loaded) return;
     const { member, reminderId, from } = params;
     if (!member && !reminderId) return;
+
+    // Handles both "Self" and "Me" so the mock data matches properly
+    let finalMember: string | null = null;
     if (member) {
-      // Handles both "Self" and "Me" so the mock data matches properly
       const target = member === 'Self' ? 'Me' : member;
       const found = FAMILY_MEMBERS.find((m) => m.toLowerCase() === target.toLowerCase());
-      const finalMember = found || target;
-      setSelectedMember(finalMember);
-      setPendingMember(finalMember);
-      setShowAll(true);
+      finalMember = found || target;
     }
-    if (reminderId) {
-      const found = reminders.find((item) => item.id === reminderId);
-      if (found) {
-        setEditingReminder(found);
+    const foundReminder = reminderId
+      ? reminders.find((item) => item.id === reminderId) ?? null
+      : null;
+
+    queueMicrotask(() => {
+      if (finalMember) {
+        setSelectedMember(finalMember);
+        setPendingMember(finalMember);
+        setShowAll(true);
+      }
+      if (foundReminder) {
+        setEditingReminder(foundReminder);
         setEditorVisible(true);
         returnHomeRef.current = from === 'home';
       }
-    }
+    });
     router.setParams({ member: undefined, reminderId: undefined, from: undefined });
-  }, [loaded, params.member, params.reminderId, params.from, reminders]);
+  }, [loaded, params, reminders]);
 
   const persist = async (next: Reminder[]) => {
     setReminders(next);
@@ -262,7 +271,7 @@ export default function RemindersScreen() {
             <Pressable
               accessibilityRole="button"
               testID="toggle-all-reminders"
-              onPress={() => router.navigate('/(tabs)/upcoming-alerts' as never)}
+              onPress={() => router.navigate('/upcoming-alerts' as never)}
               hitSlop={8}
             >
               <Text style={[styles.viewAll, { color: colors.primary }]}>
@@ -360,10 +369,11 @@ export default function RemindersScreen() {
           {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
-            paddingBottom: Math.max(insets.bottom, 12) + 20,
+            paddingBottom: 15,
           },
         ]}
       >
+
         <Pressable
           accessibilityRole="button"
           testID="add-reminder-button"
@@ -675,7 +685,7 @@ function FilterModal({
                   key={person}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  testID={`filter-${person.toLowerCase().replaceAll(' ', '-')}`}
+                  testID={`filter-${person.toLowerCase().split(' ').join('-')}`}
                   onPress={() => onSelect(person)}
                   style={[
                     styles.filterOption,

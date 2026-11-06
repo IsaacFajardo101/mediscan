@@ -1330,13 +1330,15 @@ function EditExpiryModal({
             <Text style={[styles.editMedicineName, { color: colors.mutedForeground }]}>
               {medicine.name}
             </Text>
-            <DateInput
-              label="Expiration date"
-              value={value}
-              onChangeText={onChange}
-              colors={colors}
-              testID="edit-expiry-input"
-            />
+            <View style={{ flexDirection: 'row' }}>
+              <DateInput
+                label="Expiration date"
+                value={value}
+                onChangeText={onChange}
+                colors={colors}
+                testID="edit-expiry-input"
+              />
+            </View>
             {error ? (
               <Text
                 accessibilityRole="alert"
