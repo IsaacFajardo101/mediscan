@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { Assets } from '@/constants/assets';
 import { Colors } from '@/constants/display';
 import OverlayModal from './OverlayModal';
@@ -8,11 +9,26 @@ type Props = {
   visible: boolean;
   medicineName: string;
   onViewVault: () => void;
-  onClose: () => void; // Add Another, or tapping outside the card
+  onClose: () => void; // tapping outside the card, Android back (and Add Another when there is no onAddAnother)
+  // Add Another. Leave it out for the default: close the overlay and go to the Camera tab to scan the
+  // next medicine (Scan Result, Edit Medicine). Manual Entry passes its own: close and clear the form.
+  // When given, the parent is responsible for closing the overlay.
+  onAddAnother?: () => void;
 };
 
 // "Medicine Added!" overlay shown after Save to Vault (Scan Result, Manual Entry, Edit Medicine).
-export default function MedicineAddedModal({ visible, medicineName, onViewVault, onClose }: Props) {
+export default function MedicineAddedModal({ visible, medicineName, onViewVault, onClose, onAddAnother }: Props) {
+  const router = useRouter();
+
+  const addAnother = () => {
+    if (onAddAnother) {
+      onAddAnother();
+      return;
+    }
+    onClose();
+    router.navigate('/camera');
+  };
+
   return (
     <OverlayModal visible={visible} onRequestClose={onClose}>
       <View style={styles.iconCircle}>
@@ -26,7 +42,7 @@ export default function MedicineAddedModal({ visible, medicineName, onViewVault,
         <Pressable style={styles.primary} onPress={onViewVault} accessibilityRole="button">
           <Text style={styles.primaryText}>View in Vault</Text>
         </Pressable>
-        <Pressable style={styles.secondary} onPress={onClose} accessibilityRole="button">
+        <Pressable style={styles.secondary} onPress={addAnother} accessibilityRole="button">
           <Text style={styles.secondaryText}>Add Another</Text>
         </Pressable>
       </View>

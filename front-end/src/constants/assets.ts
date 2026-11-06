@@ -10,11 +10,6 @@ export const Assets = {
   // Sample medicine photos (placeholders until real scans come from the backend)
   meds: {
     decolgen: require('../../assets/images/meds/decolgen.heic'),
-    // Placeholder photos for the "Possible Matches" list
-    match1: require('../../assets/images/meds/match-1.png'),
-    match2: require('../../assets/images/meds/match-2.png'),
-    match3: require('../../assets/images/meds/match-3.png'),
-    match4: require('../../assets/images/meds/match-4.png'),
   },
   icons: {
     // Scan Result screen

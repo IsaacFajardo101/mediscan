@@ -27,8 +27,9 @@ const STORAGE_KEY = 'mediscan.reminders.v1';
 export default function RemindersScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ openAdd?: string }>();
+  const params = useLocalSearchParams<{ openAdd?: string; member?: string; reminderId?: string; from?: string }>();
   const handledAddParam = useRef('');
+  const returnHomeRef = useRef(false); // [Home+Vault] go back to Home when details opened from Home are closed
   const [reminders, setReminders] = useState<Reminder[]>(SAMPLE_REMINDERS);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState('');
@@ -112,6 +113,33 @@ export default function RemindersScreen() {
     }
   }, [params.openAdd]);
 
+  // [Home+Vault] Opened from Home > Upcoming Reminders:
+  //   member     -> show only that profile's reminders (logged-in profile)
+  //   reminderId -> also open that reminder's details right away
+  useEffect(() => {
+    if (!loaded) return;
+    const { member, reminderId, from } = params;
+    if (!member && !reminderId) return;
+    if (member) {
+      // Handles both "Self" and "Me" so the mock data matches properly
+      const target = member === 'Self' ? 'Me' : member;
+      const found = FAMILY_MEMBERS.find((m) => m.toLowerCase() === target.toLowerCase());
+      const finalMember = found || target;
+      setSelectedMember(finalMember);
+      setPendingMember(finalMember);
+      setShowAll(true);
+    }
+    if (reminderId) {
+      const found = reminders.find((item) => item.id === reminderId);
+      if (found) {
+        setEditingReminder(found);
+        setEditorVisible(true);
+        returnHomeRef.current = from === 'home';
+      }
+    }
+    router.setParams({ member: undefined, reminderId: undefined, from: undefined });
+  }, [loaded, params.member, params.reminderId, params.from, reminders]);
+
   const persist = async (next: Reminder[]) => {
     setReminders(next);
     try {
@@ -155,6 +183,7 @@ export default function RemindersScreen() {
     void persist(next);
     setEditorVisible(false);
     setEditingReminder(null);
+    returnHomeRef.current = false;
     setSuccessMessage(isEditing ? 'Changes saved' : 'Reminder added');
   };
 
@@ -166,6 +195,7 @@ export default function RemindersScreen() {
     void persist(reminders.filter((item) => item.id !== id));
     setEditorVisible(false);
     setEditingReminder(null);
+    returnHomeRef.current = false;
 
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setDeletedItem({ reminder: removed, index });
@@ -199,7 +229,7 @@ export default function RemindersScreen() {
         <View style={styles.loading}>
           <ActivityIndicator color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
-            Loading reminders…
+            Loading reminders...
           </Text>
         </View>
       ) : (
@@ -230,15 +260,15 @@ export default function RemindersScreen() {
               Upcoming Alerts
             </Text>
             <Pressable
-            accessibilityRole="button"
-            testID="toggle-all-reminders"
-            onPress={() => router.navigate('/(tabs)/upcoming-alerts' as never)}
-            hitSlop={8}
-          >
-            <Text style={[styles.viewAll, { color: colors.primary }]}>
-              See All
-            </Text>
-          </Pressable>
+              accessibilityRole="button"
+              testID="toggle-all-reminders"
+              onPress={() => router.navigate('/(tabs)/upcoming-alerts' as never)}
+              hitSlop={8}
+            >
+              <Text style={[styles.viewAll, { color: colors.primary }]}>
+                See All
+              </Text>
+            </Pressable>
           </View>
 
           <View style={styles.summaryRow}>
@@ -357,6 +387,10 @@ export default function RemindersScreen() {
         onClose={() => {
           setEditorVisible(false);
           setEditingReminder(null);
+          if (returnHomeRef.current) {
+            returnHomeRef.current = false; // [Home+Vault] opened from Home -> back to Home
+            router.navigate('/(tabs)');
+          }
         }}
         onSave={saveReminder}
         onDelete={deleteReminder}

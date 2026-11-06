@@ -1,7 +1,7 @@
 import { AVATAR_MAP } from '@/constants/avatars';
 import { Colors, Radius, Spacing } from '@/constants/display';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProfileAvatar from './ProfileAvatar';
@@ -19,9 +19,14 @@ export default function AvatarPickerSheet({ visible, selected, onClose, onSave }
   const insets = useSafeAreaInsets();
   const [pick, setPick] = useState(selected);
 
-  useEffect(() => {
+  // Every time the sheet opens, start from the profile's current avatar.
+  // (Done during render instead of in a useEffect — the new ESLint rule
+  // react-hooks/set-state-in-effect doesn't allow setState inside effects.)
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
     if (visible) setPick(selected);
-  }, [visible, selected]);
+  }
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

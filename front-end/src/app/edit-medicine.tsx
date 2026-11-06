@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MedicineAddedModal from '@/components/MedicineAddedModal';
 import QuitEditingModal from '@/components/QuitEditingModal';
@@ -12,52 +12,42 @@ import { Colors } from '@/constants/display';
 import { findPossibleMatch } from '@/data/mockScanResults';
 import { formatDateInput } from '@/utils/date';
 
-// Choices for the Medicine Form dropdown. The medicine's own form is added if it is not in here.
-const FORMS = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Drops'];
-
 // Edit Medicine screen, opened from Scan Result with the selected possible match (?id=...).
-// Everything except the expiration date is auto-filled from that medicine. The header (back arrow
-// returns to Scan Result) comes from AppHeader via app/_layout.tsx.
+// The medicine name is auto-filled from that medicine; the expiration date is typed. The header
+// (back arrow returns to Scan Result) comes from AppHeader via app/_layout.tsx.
 export default function EditMedicineScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const match = findPossibleMatch(id);
 
   const [name, setName] = useState(match?.name ?? '');
   const [expiry, setExpiry] = useState('');
-  const [form, setForm] = useState(match?.form ?? '');
-  const [strength, setStrength] = useState(match?.strength ?? '');
-  const [formOpen, setFormOpen] = useState(false);
 
   const [addedOpen, setAddedOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
 
   // Leaving the screen (header back arrow, Android back, swipe back) asks "Leave page?" first.
-  // `pendingLeave` holds the blocked navigation action until the user taps Yes. `allowLeave` lets
-  // navigation through after Yes, and after saving (the medicine is saved, so nothing to quit).
-  const pendingLeave = useRef<Parameters<typeof navigation.dispatch>[0] | null>(null);
-  const allowLeave = useRef(false);
+  // Uses usePreventRemove (Expo Router SDK 58; the old `beforeRemove` event was removed). While
+  // `preventLeave` is true the blocked navigation is kept in `repeatLeave` until the user taps Yes.
+  // It is set to false after Yes, and after saving (the medicine is saved, so nothing to quit).
+  const [preventLeave, setPreventLeave] = useState(true);
+  const repeatLeave = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    return navigation.addListener('beforeRemove', (e) => {
-      if (allowLeave.current) return;
-      e.preventDefault();
-      pendingLeave.current = e.data.action;
-      setQuitOpen(true);
-    });
-  }, [navigation]);
+  usePreventRemove(preventLeave, ({ repeat }) => {
+    repeatLeave.current = repeat;
+    setQuitOpen(true);
+  });
 
   const confirmQuit = () => {
-    allowLeave.current = true;
+    setPreventLeave(false);
     setQuitOpen(false);
-    if (pendingLeave.current) navigation.dispatch(pendingLeave.current);
+    repeatLeave.current?.();
   };
 
   // TODO: actually save the medicine to the vault. For now Save to Vault only shows the Medicine Added overlay.
   const onSave = () => {
-    allowLeave.current = true;
+    setPreventLeave(false);
     setAddedOpen(true);
   };
 
@@ -73,8 +63,6 @@ export default function EditMedicineScreen() {
       </View>
     );
   }
-
-  const formOptions = FORMS.includes(form) || !form ? FORMS : [form, ...FORMS];
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -115,53 +103,6 @@ export default function EditMedicineScreen() {
             </Pressable>
           </InputBox>
         </FormField>
-
-        <View style={styles.row}>
-          <View style={styles.half}>
-            <FormField label="Medicine Form">
-              <Pressable onPress={() => setFormOpen((o) => !o)} accessibilityRole="button" accessibilityLabel="Medicine form">
-                <InputBox>
-                  <Text style={[styles.value, !form && { color: FormColors.placeholder }]} numberOfLines={1}>
-                    {form || 'Select form'}
-                  </Text>
-                  <Image source={Assets.icons.chevronDown} style={styles.icon} contentFit="contain" />
-                </InputBox>
-              </Pressable>
-              {formOpen && (
-                <View style={styles.options}>
-                  {formOptions.map((option) => (
-                    <Pressable
-                      key={option}
-                      style={styles.option}
-                      onPress={() => {
-                        setForm(option);
-                        setFormOpen(false);
-                      }}
-                      accessibilityRole="button"
-                    >
-                      <Text style={[styles.value, option === form && styles.optionSelected]}>{option}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </FormField>
-          </View>
-
-          <View style={styles.half}>
-            <FormField label="Dosage / Strength">
-              <InputBox>
-                <TextInput
-                  style={styles.input}
-                  value={strength}
-                  onChangeText={setStrength}
-                  placeholder="e.g. 500 mg"
-                  placeholderTextColor={FormColors.placeholder}
-                  accessibilityLabel="Dosage or strength"
-                />
-              </InputBox>
-            </FormField>
-          </View>
-        </View>
       </ScrollView>
 
       {/* Sticky bottom bar */}
@@ -191,20 +132,7 @@ const styles = StyleSheet.create({
   required: { fontSize: 12, color: FormColors.helper },
 
   input: { flex: 1, fontSize: 15, color: Colors.textPrimary, padding: 0 },
-  value: { flex: 1, fontSize: 15, color: Colors.textPrimary },
   icon: { width: 20, height: 20 },
-
-  row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  half: { flex: 1 },
-  options: {
-    backgroundColor: Colors.onAction,
-    borderWidth: 1,
-    borderColor: FormColors.inputBorder,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  option: { paddingHorizontal: 14, paddingVertical: 12 },
-  optionSelected: { fontWeight: '700' },
 
   bar: { paddingTop: 20, paddingHorizontal: 24, backgroundColor: Colors.surfacePrimary },
   saveButton: {
