@@ -18,6 +18,10 @@ import fetchProfilesResponse from './json/fetch-profiles.response.json';
 import addProfileResponse from './json/add-profile.response.json';
 
 import type { AddProfileRequest, EditProfileRequest, Profile } from '@/types/profile';
+import { api } from '@/services/api';
+import { clearSession, saveSession, type Session as StoredSession } from '@/services/sessionStore';
+
+const USE_REMOTE = process.env.EXPO_PUBLIC_USE_API === 'true';
 
 // ---- Shapes (same as the Mockdata JSON) ----
 // Profile shape lives in src/types/profile.ts. Re-exported here so old imports still work.
@@ -76,9 +80,67 @@ const newSession = (): Session => ({
   session_expire_at: new Date(Date.now() + 3600_000).toISOString(),
 });
 
+type RemoteEnvelope<T> = { header?: { success: boolean; code: number; message: string }; data: T };
+type RemoteLogin = { account_id: string; access_token: string; token_type: 'bearer' };
+type RemoteProfile = {
+  profile_id: string | number;
+  profile_icon: number;
+  profile_fullname: string;
+  profile_displayname: string;
+  profile_birthdate: string;
+};
+const remoteProfile = (profile: RemoteProfile): Profile => ({
+  profile_id: profile.profile_id,
+  profile_icon: profile.profile_icon,
+  profile_fullname: profile.profile_fullname,
+  profile_birthdate: profile.profile_birthdate,
+  profile_display_name: profile.profile_displayname,
+});
+const remoteSession = (data: RemoteLogin, email: string): Session => ({
+  session_token: data.access_token,
+  session_expire_at: '',
+});
+const toStoredSession = (data: RemoteLogin, email: string): StoredSession => ({
+  access_token: data.access_token,
+  token_type: data.token_type,
+  account_id: data.account_id,
+  email,
+});
+
+async function refreshRemoteProfiles(email: string): Promise<void> {
+  const response = await api.request<RemoteEnvelope<{ account_id: number; email: string; profiles: RemoteProfile[] }>>(
+    '/accounts/me/profiles/',
+  );
+  accounts[email] = {
+    account_id: Number(response.data.account_id),
+    email,
+    password: accounts[email]?.password ?? '',
+    verified: true,
+    profiles: response.data.profiles.map(remoteProfile),
+  };
+}
+
 export const MockAuth = {
   // ---------- Log In ----------
   async login(email: string, password: string): Promise<Result<Session>> {
+    if (USE_REMOTE) {
+      try {
+        const normalized = norm(email);
+        const response = await api.request<RemoteEnvelope<RemoteLogin>>('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: normalized, password }),
+        });
+        await saveSession(toStoredSession(response.data, normalized));
+        session = remoteSession(response.data, normalized);
+        currentEmail = normalized;
+        activeProfile = null;
+        await refreshRemoteProfiles(normalized);
+        emit();
+        return { success: true, code: response.header?.code ?? 200, message: response.header?.message ?? 'Logged in.', data: session };
+      } catch (error) {
+        return fail(error instanceof Error ? 401 : 500, error instanceof Error ? error.message : 'Unable to log in.');
+      }
+    }
     await wait();
     const acc = accounts[norm(email)];
     if (!acc || acc.password !== password) return fail(401, 'Incorrect email or password.');
@@ -94,6 +156,36 @@ export const MockAuth = {
   // Existing account -> code 409 (screen will silently log them in, no verification)
   // New account -> unverified until the code is entered
   async signUp(email: string, password: string): Promise<Result> {
+    if (USE_REMOTE) {
+      try {
+        const normalized = norm(email);
+        const response = await api.request<{
+          header: { success: boolean; code: number; message: string };
+          data: { account_exists: boolean; verification_sent: boolean };
+        }>('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: normalized,
+            password,
+          }),
+        });
+        accounts[normalized] = {
+          account_id: Date.now(),
+          email: normalized,
+          password,
+          verified: false,
+          profiles: [],
+        };
+        return {
+          success: true,
+          code: response.header.code,
+          message: response.header.message,
+          data: response.data,
+        };
+      } catch (error) {
+        return fail(error instanceof Error ? 400 : 500, error instanceof Error ? error.message : 'Unable to sign up.');
+      }
+    }
     await wait();
     const e = norm(email);
     if (accounts[e]?.verified) return fail(409, 'Account already exists.');
@@ -103,6 +195,17 @@ export const MockAuth = {
   },
 
   async resendCode(email: string): Promise<Result> {
+    if (USE_REMOTE) {
+      try {
+        const response = await api.request<{ header: { success: boolean; code: number; message: string } }>('/auth/resend-code', {
+          method: 'POST',
+          body: JSON.stringify({ email: norm(email) }),
+        });
+        return { success: true, code: response.header.code, message: response.header.message };
+      } catch (error) {
+        return fail(error instanceof Error ? 400 : 500, error instanceof Error ? error.message : 'Unable to resend verification code.');
+      }
+    }
     await wait();
     console.log(`[mock] Verification code for ${norm(email)}: ${MOCK_CODE}`);
     return { success: true, code: 200, message: 'A new code was sent to your email.' };
@@ -110,6 +213,19 @@ export const MockAuth = {
 
   // ---------- Verify Code ----------
   async verifyCode(email: string, code: string): Promise<Result<Session>> {
+    if (USE_REMOTE) {
+      try {
+        const normalized = norm(email);
+        await api.request<{ header: { success: boolean; code: number; message: string } }>('/auth/verify-email', {
+          method: 'POST',
+          body: JSON.stringify({ email: normalized, code }),
+        });
+        const login = await this.login(normalized, accounts[normalized]?.password ?? '');
+        return login;
+      } catch (error) {
+        return fail(error instanceof Error ? 400 : 500, error instanceof Error ? error.message : 'Unable to verify code.');
+      }
+    }
     await wait();
     const acc = accounts[norm(email)];
     if (!acc) return fail(404, 'Account not found. Please sign up again.');
@@ -129,6 +245,25 @@ export const MockAuth = {
   },
 
   async addProfile(p: NewProfile): Promise<Result<Profile>> {
+    if (USE_REMOTE) {
+      try {
+        const response = await api.request<RemoteEnvelope<RemoteProfile>>('/accounts/me/profiles/', {
+          method: 'POST',
+          body: JSON.stringify({
+            profile_icon: p.profile_icon,
+            profile_fullname: p.profile_fullname,
+            profile_displayname: p.profile_display_name,
+            profile_birthdate: p.profile_birthdate,
+          }),
+        });
+        const profile = remoteProfile(response.data);
+        if (currentEmail) await refreshRemoteProfiles(currentEmail);
+        emit();
+        return { success: true, code: response.header?.code ?? 201, message: response.header?.message ?? 'Profile created.', data: profile };
+      } catch (error) {
+        return fail(error instanceof Error ? 400 : 500, error instanceof Error ? error.message : 'Unable to create profile.');
+      }
+    }
     await wait();
     if (!session || !currentEmail) return fail(401, 'Session expired. Please log in again.');
     const profile: Profile = { ...p, profile_id: ++nextId };
@@ -138,7 +273,27 @@ export const MockAuth = {
   },
 
   // PUT /api/v1/accounts/me/profiles/{profileId}
-  async updateProfile(profileId: number, changes: EditProfileRequest): Promise<Result<Profile>> {
+  async updateProfile(profileId: string | number, changes: EditProfileRequest): Promise<Result<Profile>> {
+    if (USE_REMOTE) {
+      try {
+        const response = await api.request<RemoteEnvelope<RemoteProfile>>(`/accounts/me/profiles/${profileId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            profile_icon: changes.profile_icon,
+            profile_fullname: changes.profile_fullname,
+            profile_displayname: changes.profile_display_name,
+            profile_birthdate: changes.profile_birthdate,
+          }),
+        });
+        const profile = remoteProfile(response.data);
+        if (currentEmail) await refreshRemoteProfiles(currentEmail);
+        if (activeProfile?.profile_id === profileId) activeProfile = profile;
+        emit();
+        return { success: true, code: response.header?.code ?? 200, message: response.header?.message ?? 'Profile updated.', data: profile };
+      } catch (error) {
+        return fail(error instanceof Error ? 400 : 500, error instanceof Error ? error.message : 'Unable to update profile.');
+      }
+    }
     await wait();
     if (!session || !currentEmail) return fail(401, 'Session expired. Please log in again.');
     const list = accounts[currentEmail].profiles;
@@ -153,7 +308,17 @@ export const MockAuth = {
 
   // DELETE /api/v1/accounts/me/profiles/{profileId}
   // ProfileContext calls this only after the 15-second undo window.
-  async deleteProfile(profileId: number): Promise<Result> {
+  async deleteProfile(profileId: string | number): Promise<Result> {
+    if (USE_REMOTE) {
+      try {
+        const response = await api.request<{ success: boolean; code: number; message: string }>(`/accounts/me/profiles/${profileId}`, { method: 'DELETE' });
+        if (currentEmail) await refreshRemoteProfiles(currentEmail);
+        emit();
+        return { success: response.success, code: response.code, message: response.message };
+      } catch (error) {
+        return fail(error instanceof Error ? 404 : 500, error instanceof Error ? error.message : 'Unable to delete profile.');
+      }
+    }
     await wait();
     if (!session || !currentEmail) return fail(401, 'Session expired. Please log in again.');
     if (activeProfile?.profile_id === profileId) return fail(409, 'You cannot remove the profile you are using.');
@@ -173,6 +338,10 @@ export const MockAuth = {
   isLoggedIn: () => !!session,
 
   logout() {
+    if (USE_REMOTE) {
+      void api.request('/auth/logout', { method: 'POST' }).catch(() => undefined);
+      void clearSession();
+    }
     session = null;
     currentEmail = null;
     activeProfile = null;

@@ -247,6 +247,17 @@ class AuthActionResponse(BaseModel):
     header: AuthHeader
 
 
+class RegisterData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    account_exists: bool
+    verification_sent: bool
+
+
+class RegisterResponse(AuthActionResponse):
+    data: RegisterData
+
+
 def _normalize_email(email: str) -> str:
     return email.strip().lower()
 
@@ -492,7 +503,7 @@ async def _login_with_session(
 
 @router.post(
     "/register",
-    response_model=AuthActionResponse,
+    response_model=RegisterResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def register(
@@ -515,8 +526,33 @@ async def register(
         "VERIFICATION_CODE_TTL_MINUTES", 10, 60
     )
     account_id: str | None = None
+    account_exists = False
 
     async with session.begin():
+        existing_result = await session.execute(
+            text(
+                """
+                SELECT account_id
+                FROM accounts
+                WHERE email = :email
+                  AND account_is_deleted = FALSE
+                """
+            ),
+            {"email": email},
+        )
+        account_exists = existing_result.scalar_one_or_none() is not None
+        if account_exists:
+            return RegisterResponse(
+                header=AuthHeader(
+                    success=True,
+                    code=status.HTTP_202_ACCEPTED,
+                    message="An account with this email already exists.",
+                ),
+                data=RegisterData(
+                    account_exists=True,
+                    verification_sent=False,
+                ),
+            )
         result = await session.execute(
             text(
                 """
@@ -577,12 +613,16 @@ async def register(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to send verification email. Please try again later.",
         )
-    return AuthActionResponse(
+    return RegisterResponse(
         header=AuthHeader(
             success=True,
             code=status.HTTP_202_ACCEPTED,
             message="Request accepted. If eligible, further instructions will be provided.",
-        )
+        ),
+        data=RegisterData(
+            account_exists=False,
+            verification_sent=True,
+        ),
     )
 
 

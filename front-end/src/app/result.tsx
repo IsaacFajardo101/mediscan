@@ -8,7 +8,7 @@ import PossibleMatches from '@/components/PossibleMatches';
 import ScanActions from '@/components/ScanActions';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Colors, Spacing, Type } from '@/constants/display';
-import { findPossibleMatch, isScanState, mockScanResults, VERIFIED_VAULT_ID } from '@/data/mockScanResults';
+import { findPossibleMatch, fromOcrResponse, isScanState, mockScanResults, VERIFIED_VAULT_ID, type ScanResult } from '@/data/mockScanResults';
 import { useVaultMedicine } from '@/services/vaultStore';
 import { formatLongDate, getMedicineForm } from '@/utils/medicine';
 
@@ -20,8 +20,15 @@ const EmptyText = '#B9B9B9';
 // While there is no real scan data, pick the state with /result?state=verified | needs_verification | no_results
 export default function ResultScreen() {
   const router = useRouter();
-  const { state } = useLocalSearchParams<{ state?: string }>();
-  const result = mockScanResults[isScanState(state) ? state : 'verified'];
+  const { state, scan } = useLocalSearchParams<{ state?: string; scan?: string }>();
+  let result: ScanResult = mockScanResults[isScanState(state) ? state : 'verified'];
+  if (scan) {
+    try {
+      result = fromOcrResponse(JSON.parse(scan));
+    } catch {
+      result = mockScanResults[isScanState(state) ? state : 'verified'];
+    }
+  }
 
   // Needs Verification: at most one possible match is selected. Tapping the selected one again deselects it.
   const [selectedId, setSelectedId] = useState<string | null>(null);

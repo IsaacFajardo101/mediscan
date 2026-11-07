@@ -3,6 +3,7 @@
 
 // One medicine from the FDA dataset, exactly as the backend sends it.
 export type FdaMedicine = {
+  fda_id?: number;
   fda_approval_id: string;
   fda_registration_id: string;
   fda_brandname: string;

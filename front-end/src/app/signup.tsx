@@ -41,14 +41,9 @@ export default function SignUpScreen() {
     const res = await MockAuth.signUp(e, password);
 
     // 3a. Already exists -> silent log in
-    if (res.code === 409) {
-      const login = await MockAuth.login(e, password);
+    if (res.code === 409 || res.data?.account_exists) {
       setLoading(false);
-      if (!login.success) {
-        return setError('An account with this email already exists, but the password is incorrect. Try Log In instead.');
-      }
-      setAskSave(true); // manual login -> ask to save
-      return;
+      return setError('An account with this email already exists. Please use Log In instead.');
     }
 
     setLoading(false);
@@ -72,7 +67,7 @@ export default function SignUpScreen() {
 
         <View style={styles.body}>
           <Text style={styles.title}>Create your account</Text>
-          <Text style={styles.subtitle}>Sign up to start keeping your family's medicines organized.</Text>
+          <Text style={styles.subtitle}>Sign up to start keeping your family&apos;s medicines organized.</Text>
 
           <FormError message={error} />
 

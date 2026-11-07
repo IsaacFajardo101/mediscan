@@ -8,6 +8,7 @@ import AuthHeader from '@/components/AuthHeader';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { MockAuth, Profile } from '@/mock/mockAuth';
 import { Colors, Radius, Spacing } from '@/constants/display';
+import { setActiveProfileId } from '@/services/sessionStore';
 
 // "Choose your profile" screen. Lumalabas after Log In / Verify.
 // Shows the profiles from the account data (Fetch Profile). Display name lagi ang pangalan na pinapakita.
@@ -29,8 +30,9 @@ export default function ChooseProfileScreen() {
   if (!MockAuth.isLoggedIn()) return <Redirect href="/login" />;
   if (profiles.length === 0) return <Redirect href="/create-profile" />;
 
-  const pick = (p: Profile) => {
+  const pick = async (p: Profile) => {
     MockAuth.selectProfile(p);
+    await setActiveProfileId(p.profile_id);
     router.replace('/');
   };
 

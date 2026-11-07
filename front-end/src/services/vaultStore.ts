@@ -14,6 +14,8 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { buildMockVault } from '@/mock';
 import type { NewMedicine, VaultMedicine } from '@/types/medicine';
 import { logChange, newId } from './changeLog';
+import { api } from './api';
+import { getSession } from './sessionStore';
 
 const KEY = 'mediscan.vault.medicines.v1';
 export const UNDO_SECONDS = 15;
@@ -27,6 +29,56 @@ type State = {
 let state: State = { ready: false, medicines: [], pendingDeleteIds: [] };
 const listeners = new Set<() => void>();
 const deleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+type VaultApiItem = {
+  vault_id: number;
+  profile_id: number;
+  fda_id: number;
+  vault_expiry_date: string | null;
+  vault_created_at: string | null;
+  fda_approval_id: string;
+  fda_registration_id: string;
+  fda_genericname: string;
+  fda_brandname: string | null;
+  fda_dosage_form: string | null;
+  fda_dosage_strength: string | null;
+};
+
+type VaultListResponse = { data: VaultApiItem[] };
+type VaultItemResponse = { data: VaultApiItem };
+
+function mapApiItem(item: VaultApiItem): VaultMedicine {
+  return {
+    fda_id: item.fda_id,
+    fda_approval_id: item.fda_approval_id,
+    fda_registration_id: item.fda_registration_id,
+    fda_brandname: item.fda_brandname ?? '',
+    fda_genericname: item.fda_genericname,
+    fda_dosage_form: item.fda_dosage_form ?? '',
+    fda_dosage_strength: item.fda_dosage_strength ?? '',
+    fda_manufacturer: null,
+    fda_pharmacologic_category: null,
+    fda_classification: null,
+    vault_id: String(item.vault_id),
+    vault_expiry_date: item.vault_expiry_date,
+    vault_status: 'verified',
+    vault_source: 'scan',
+    vault_confidence: null,
+    vault_note: '',
+    vault_saved_at: item.vault_created_at ?? new Date().toISOString(),
+    vault_common_uses: null,
+    vault_warnings: null,
+  };
+}
+
+async function activeProfileId(): Promise<number | null> {
+  return (await getSession())?.active_profile_id ?? null;
+}
+
+async function getRemoteProfileId(): Promise<number | null> {
+  const session = await getSession();
+  return session?.access_token ? activeProfileId() : null;
+}
 
 function setState(patch: Partial<State>) {
   state = { ...state, ...patch };
@@ -61,6 +113,12 @@ export function loadVault(): Promise<void> {
   if (!loading) {
     loading = (async () => {
       try {
+        const profileId = await getRemoteProfileId();
+        if (profileId !== null) {
+          const response = await api.request<VaultListResponse>(`/accounts/me/vault/?profile_id=${profileId}`);
+          setState({ ready: true, medicines: response.data.map(mapApiItem) });
+          return;
+        }
         const raw = await AsyncStorage.getItem(KEY);
         if (raw) {
           setState({ ready: true, medicines: JSON.parse(raw) as VaultMedicine[] });
@@ -122,6 +180,20 @@ export function getMedicineById(id: string): VaultMedicine | undefined {
 // "Save to Vault" from Scan Results or Manual Entry.
 export async function addMedicine(input: NewMedicine): Promise<VaultMedicine> {
   await loadVault();
+  const profileId = await getRemoteProfileId();
+  if (profileId !== null && input.fda_id) {
+    const response = await api.request<VaultItemResponse>('/accounts/me/vault/', {
+      method: 'POST',
+      body: JSON.stringify({
+        profile_id: profileId,
+        fda_id: input.fda_id,
+        vault_expiry_date: input.vault_expiry_date,
+      }),
+    });
+    const med = mapApiItem(response.data);
+    setState({ medicines: [med, ...state.medicines] });
+    return med;
+  }
   const med: VaultMedicine = {
     ...input,
     vault_id: newId('med'),
@@ -141,12 +213,25 @@ export async function updateNote(id: string, note: string): Promise<void> {
   setState({ medicines: state.medicines.map((m) => (m.vault_id === id ? { ...m, vault_note: clean } : m)) });
   await persist();
   await logChange('update', id, { vault_note: clean });
-  // TODO(Sprint 4): PATCH to backend here.
 }
 
 // Generic edit (e.g. Edit Expiration Date from Upcoming Alerts can reuse this).
 export async function updateMedicine(id: string, changes: Partial<Omit<VaultMedicine, 'vault_id'>>): Promise<void> {
   await loadVault();
+  const profileId = await getRemoteProfileId();
+  const current = state.medicines.find((medicine) => medicine.vault_id === id);
+  if (profileId !== null && current?.fda_id) {
+    const response = await api.request<VaultItemResponse>(`/accounts/me/vault/${id}?profile_id=${profileId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        fda_id: changes.fda_id ?? current.fda_id,
+        vault_expiry_date: changes.vault_expiry_date ?? current.vault_expiry_date,
+      }),
+    });
+    const updated = mapApiItem(response.data);
+    setState({ medicines: state.medicines.map((medicine) => (medicine.vault_id === id ? { ...medicine, ...updated } : medicine)) });
+    return;
+  }
   setState({ medicines: state.medicines.map((m) => (m.vault_id === id ? { ...m, ...changes } : m)) });
   await persist();
   await logChange('update', id, { ...changes });
@@ -184,5 +269,8 @@ export async function commitDelete(id: string): Promise<void> {
   });
   await persist();
   await logChange('delete', id, null);
-  // TODO(Sprint 4): DELETE on backend here.
+  const profileId = await getRemoteProfileId();
+  if (profileId !== null) {
+    await api.request(`/accounts/me/vault/${id}?profile_id=${profileId}`, { method: 'DELETE' });
+  }
 }

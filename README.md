@@ -1,83 +1,157 @@
-# Welcome to your Expo app 👋
+# MediScan
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+MediScan is a local FastAPI backend and Expo/React Native frontend for medicine scanning, account profiles, OCR medicine matching, and a medicine vault.
 
-## Get started
+## Project layout
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+back-end/   FastAPI API, PostgreSQL access, OCR, authentication, and vault API
+front-end/  Expo Router mobile/web application
+01-schema.sql
+.env        Local backend/database/email configuration (never commit)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Requirements
 
-### Other setup steps
+- Python 3.12 recommended
+- Node.js and npm
+- PostgreSQL running locally
+- Expo-compatible development environment for Android/iOS testing
+- A verified Brevo sender and SMTP credentials for email verification
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The application can be run entirely on localhost. No public network or LAN address is required for browser/web testing.
 
-## Learn more
+## Backend setup
 
-To learn more about developing your project with Expo, look at the following resources:
+From the repository root, create `.env`:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```dotenv
+DATABASE_URL=postgresql://<user>:<password>@127.0.0.1:5432/mediscan_db
+VERIFICATION_CODE_PEPPER=<random-secret>
 
-## Join the community
+BREVO_SMTP_HOST=smtp-relay.brevo.com
+BREVO_SMTP_PORT=587
+BREVO_SMTP_USERNAME=<brevo-smtp-login>
+BREVO_SMTP_PASSWORD=<brevo-smtp-key>
+BREVO_SENDER_EMAIL=<verified-brevo-sender>
+BREVO_SENDER_NAME=MediScan
 
-Join our community of developers creating universal apps.
+# Optional: enable the local CRUD workbench only when needed.
+ENABLE_CRUD_TEST_API=false
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Do not commit `.env` or paste SMTP credentials into source control. If a credential is exposed, revoke it in Brevo and generate a replacement.
 
-# MediScan CRUD tester
+Create the database and apply the schema:
 
-This is a small browser workbench for calling the real CRUD functions in `crud_user.py` and `crud_medicine.py`. It covers accounts, profiles, session tokens, FDA medicines, medication schedules, vault items, and medication logs. The existing public API handlers remain unchanged.
+```powershell
+psql -h 127.0.0.1 -U <user> -d mediscan_db -f .\01-schema.sql
+```
 
-## Run locally
+Install backend dependencies:
 
-1. Start PostgreSQL and make sure the repository-root `.env` has the database connection settings.
-2. Enable the local-only test API in that `.env`:
+```powershell
+cd .\back-end
+python -m pip install -r requirements.txt
+```
 
-   ```dotenv
-   ENABLE_CRUD_TEST_API=true
-   ```
+Start the backend on localhost:
 
-3. Install backend requirements if needed and start FastAPI from the backend directory:
+```powershell
+$env:PYTHONPATH = "app"
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
 
-   ```powershell
-   cd back-end
-   python -m pip install -r requirements.txt
-   python -m uvicorn main:app --app-dir app --reload
-   ```
+Useful backend URLs:
 
-4. Open <http://127.0.0.1:8000/crud-tester/>.
+- API root: <http://127.0.0.1:8000/api/v1/>
+- Health check: <http://127.0.0.1:8000/api/v1/health>
+- OpenAPI documentation: <http://127.0.0.1:8000/docs>
 
-The test API is disabled unless explicitly enabled, and it rejects non-loopback clients. It is intended only for disposable local development data: create/update/delete requests modify the configured database. Account operations accept a `password_hash` value and do not hash passwords; use test values only.
+The FDA dataset must already exist in PostgreSQL for OCR linking and vault operations. Use the repository's database import/seed scripts when setting up a fresh database.
 
-Select a table and operation to load an example JSON argument object. Replace placeholders with IDs returned by earlier requests, then run the operation. Date/time values use ISO formats (`YYYY-MM-DD`, `HH:MM`, or `YYYY-MM-DDTHH:MM:SS`). Responses and API errors are displayed in the page.
+## Frontend setup
+
+From `front-end`, create `.env`:
+
+```dotenv
+EXPO_PUBLIC_USE_API=true
+EXPO_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1
+```
+
+Install dependencies and start Expo:
+
+```powershell
+cd .\front-end
+npm install
+npx expo start
+```
+
+For browser testing:
+
+```powershell
+npx expo start --web
+```
+
+Open the localhost URL printed by Expo, normally <http://localhost:8081>.
+
+Run the backend and frontend in separate terminals. If environment variables change, restart Expo with:
+
+```powershell
+npx expo start -c
+```
+
+For local browser testing, use `127.0.0.1` for both services. A physical phone cannot use the computer's `127.0.0.1` directly; use an isolated private network or an emulator configured for host access if mobile-device testing is required.
+
+## Main integrated flows
+
+1. Sign up through `POST /api/v1/auth/register`.
+2. Receive the verification code through Brevo.
+3. Verify through `POST /api/v1/auth/verify-email`.
+4. Log in and select a profile.
+5. Scan a medicine image through `POST /api/v1/ocr/extract-label`.
+6. Save, update, list, and delete medicines through `/api/v1/accounts/me/vault`.
+
+New accounts start with no profiles. Profiles are created from the frontend after verification. Signing up with an existing email is flagged by the frontend instead of silently creating another account; use Log In or Resend Code.
+
+## Local CRUD workbench
+
+The CRUD tester is intended only for local development:
+
+```powershell
+cd .\back-end
+$env:PYTHONPATH = "app"
+$env:ENABLE_CRUD_TEST_API = "true"
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open <http://127.0.0.1:8000/crud-tester/>.
+
+It modifies the configured database and rejects non-loopback clients. Do not enable it on a shared or production server.
+
+## Validation
+
+Backend tests:
+
+```powershell
+cd .\back-end
+pytest -q
+```
+
+Frontend typecheck and lint:
+
+```powershell
+cd .\front-end
+npx tsc --noEmit
+npx expo lint
+```
+
+The repository may contain existing Expo SDK 58 type/lint findings in unrelated screens. Changed integration files should still be checked independently when the full suite reports those pre-existing issues.
+
+## Troubleshooting
+
+- **`Failed to fetch`:** confirm the backend is running, `EXPO_PUBLIC_API_URL` points to `http://127.0.0.1:8000/api/v1`, and restart Expo with `npx expo start -c`.
+- **API root returns 404:** use `/api/v1/health` or `/docs`; `/api/v1/` is also available in the current backend.
+- **No verification email:** verify the Brevo sender, confirm the root `.env` is being used, check Brevo transactional logs, and inspect the backend terminal for SMTP errors.
+- **Existing account message:** use Log In or Resend Code rather than submitting Sign Up repeatedly.
+- **Empty profile list:** this is expected for a newly created account; create the first profile in the app.

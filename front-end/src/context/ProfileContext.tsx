@@ -16,8 +16,8 @@ interface ProfileContextType {
   /** Throws an Error(message) if the save fails. */
   addProfile: (data: AddProfileRequest) => Promise<Profile>;
   /** Throws an Error(message) if the save fails. */
-  updateProfile: (profileId: number, data: EditProfileRequest) => Promise<void>;
-  deleteProfileWithUndo: (profileId: number) => void;
+  updateProfile: (profileId: string | number, data: EditProfileRequest) => Promise<void>;
+  deleteProfileWithUndo: (profileId: string | number) => void;
   undoDelete: () => void;
   pendingDeleteId: number | null;
   undoSecondsLeft: number;
@@ -60,7 +60,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const deleteProfileWithUndo = useCallback(
-    (profileId: number) => {
+    (profileId: string | number) => {
       if (store.activeProfile?.profile_id === profileId) return; // can't remove the profile in use
       // Only one undo at a time: finish the previous delete first so it isn't lost
       if (pendingRef.current !== null) commitPendingDelete();
@@ -101,7 +101,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return res.data;
   }, []);
 
-  const updateProfile = useCallback(async (profileId: number, data: EditProfileRequest) => {
+  const updateProfile = useCallback(async (profileId: string | number, data: EditProfileRequest) => {
     const res = await MockAuth.updateProfile(profileId, data);
     if (!res.success) throw new Error(res.message);
   }, []);

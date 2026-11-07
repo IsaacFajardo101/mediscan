@@ -23,10 +23,21 @@ def _send_smtp_message(
         with smtplib.SMTP(host, port, timeout=5) as client:
             client.starttls(context=context)
             client.login(username, password)
-            client.send_message(message)
-        return True
-    except (OSError, smtplib.SMTPException):
-        logger.warning("Brevo SMTP verification email delivery failed")
+            refused = client.send_message(message)
+            if refused:
+                logger.warning(
+                    "Brevo SMTP rejected verification email recipients: %s",
+                    ", ".join(sorted(refused)),
+                )
+                return False
+            logger.info("Brevo SMTP accepted verification email for delivery")
+            return True
+    except (OSError, smtplib.SMTPException) as error:
+        logger.warning(
+            "Brevo SMTP verification email delivery failed (%s): %s",
+            error.__class__.__name__,
+            str(error),
+        )
         return False
 
 

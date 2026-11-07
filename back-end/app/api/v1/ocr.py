@@ -8,7 +8,6 @@ from db.database import get_db
 from schemas.ocr import OCRResponse
 from services.data_linker import link_medicine_record
 from services.nlp_service import extract_entities
-from services.vision import extract_text
 
 
 router = APIRouter()
@@ -27,6 +26,8 @@ async def extract_label(
     db: AsyncSession | None = Depends(get_db),
 ):
     """Extract NER entities from an uploaded medicine-label image."""
+    from services.vision import extract_text
+
     image_bytes = await file.read()
     raw_text = await extract_text(image_bytes)
     extracted_data = await extract_entities(raw_text)

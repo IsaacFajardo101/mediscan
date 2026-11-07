@@ -464,7 +464,7 @@ def create_vault_item(
     account_id: str,
     profile_id: str,
     fda_id: int,
-    expiry_date: date,
+    expiry_date: date | None,
 ) -> dict | None:
     """Create an item for an owned profile and return it with medicine details."""
     try:
@@ -482,6 +482,8 @@ def create_vault_item(
                     RETURNING *
                 )
                 SELECT inserted.*,
+                       medicines.fda_approval_id,
+                       medicines.fda_registration_id,
                        medicines.fda_genericname,
                        medicines.fda_brandname,
                        medicines.fda_dosage_form,
@@ -509,6 +511,8 @@ def get_vault_item_by_id(
         cursor.execute(
             """
             SELECT items.*,
+                   medicines.fda_approval_id,
+                   medicines.fda_registration_id,
                    medicines.fda_genericname,
                    medicines.fda_brandname,
                    medicines.fda_dosage_form,
@@ -540,6 +544,8 @@ def list_vault_items_by_profile(
         cursor.execute(
             """
             SELECT items.*,
+                   medicines.fda_approval_id,
+                   medicines.fda_registration_id,
                    medicines.fda_genericname,
                    medicines.fda_brandname,
                    medicines.fda_dosage_form,
@@ -567,7 +573,7 @@ def update_vault_item(
     profile_id: str,
     vault_id: int,
     fda_id: int,
-    expiry_date: date,
+    expiry_date: date | None,
 ) -> dict | None:
     """Update an owned vault item's medicine and expiry, then return joined details."""
     try:
@@ -589,6 +595,8 @@ def update_vault_item(
                     RETURNING *
                 )
                 SELECT updated.*,
+                       medicines.fda_approval_id,
+                       medicines.fda_registration_id,
                        medicines.fda_genericname,
                        medicines.fda_brandname,
                        medicines.fda_dosage_form,

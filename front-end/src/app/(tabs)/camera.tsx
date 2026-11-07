@@ -14,39 +14,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// ---- MOCK BACKEND (replace when the API is ready) ----
-const USE_MOCK = true; // change to false when the API is ready
+import { scanLabel } from "@/services/scanApi";
 
 type ScanState = "verified" | "needs_verification" | "no_results";
-
-// Each scan shows the next scenario: verified -> needs_verification -> no_results -> repeat
-const MOCK_STATES: ScanState[] = ["verified", "needs_verification", "no_results"];
-let mockIndex = 0;
-
-async function scanImage(base64: string): Promise<ScanState> {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 1000)); // fake waiting time
-    console.log("MOCK: pretending to send", Math.round(base64.length / 1024), "KB");
-
-    const state = MOCK_STATES[mockIndex];
-    mockIndex = (mockIndex + 1) % MOCK_STATES.length;
-    console.log("MOCK result:", state);
-    return state;
-  }
-
-  const response = await fetch("https://PLACEHOLDER-URL/api/scan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image: base64 }),
-  });
-
-  if (!response.ok) throw new Error("Server error: " + response.status);
-
-  const data = await response.json();
-  return data.status; // adjust to match the real API response format
-}
-// ---- END MOCK BACKEND ----
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -56,7 +26,6 @@ export default function CameraScreen() {
   const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [base64Image, setBase64Image] = useState<string | null>(null);
   const [facing, setFacing] = useState<CameraType>("back");
   const [torchOn, setTorchOn] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
@@ -78,19 +47,22 @@ export default function CameraScreen() {
       if (!result.base64) throw new Error("No base64 returned");
 
       setSelectedImage(result.uri);
-      setBase64Image(result.base64);
 
       // Checks
       const sizeKB = Math.round((result.base64.length * 0.75) / 1024);
       console.log("Processed:", result.width, "x", result.height, "~", sizeKB, "KB");
       console.log("Base64 starts with:", result.base64.substring(0, 20));
 
-      // Step 3: send to backend (mock for now)
-      const state = await scanImage(result.base64);
-      console.log("Image scan result:", state);
+      // Step 3: send the compressed image to the backend.
+      const scan = await scanLabel(result.uri);
+      const state: ScanState = scan.suggested_medicines.length === 0
+        ? "no_results"
+        : scan.suggested_medicines.length === 1 && scan.suggested_medicines[0].confidence_percentage >= 95
+          ? "verified"
+          : "needs_verification";
 
       // Step 4: open the Scan Result screen with the matching scenario
-      router.push({ pathname: "/result", params: { state } });
+      router.push({ pathname: "/result", params: { state, scan: JSON.stringify(scan) } });
     } catch (e) {
       console.log("Processing failed:", e);
       Alert.alert("Error", "Could not process or send the image. Please try again.");

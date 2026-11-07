@@ -8,6 +8,7 @@ export type ScanState = 'verified' | 'needs_verification' | 'no_results';
 
 export type PossibleMatch = {
   id: string;
+  fdaId?: number;
   name: string;
   category: string;
   form: string;     // raw dosage form, e.g. "Film-Coated Tablet": shown as an icon and used to auto-fill Edit Medicine
@@ -42,6 +43,21 @@ type ApiResponse = {
   data: ApiMedicine[];
 };
 
+type OcrResponse = {
+  entities: { expiry_date: string | null };
+  suggested_medicines: Array<{
+    fda_id: number;
+    fda_approval_id: string;
+    fda_brandname: string | null;
+    fda_genericname: string;
+    fda_dosage_form: string | null;
+    fda_dosage_strength: string | null;
+    fda_manufacturer: string | null;
+    fda_pharmacologic_category: string | null;
+    confidence_percentage: number;
+  }>;
+};
+
 // The API has no similarity score yet, so these are mock values (one per shown match).
 const MOCK_CONFIDENCE = 80;
 const MOCK_SIMILARITIES = [80, 75, 70, 60];
@@ -60,6 +76,38 @@ export function fromSearchResponse(res: ApiResponse): ScanResult {
     similarity: MOCK_SIMILARITIES[i],
   }));
   return { status: 'needs_verification', confidence: MOCK_CONFIDENCE, matches };
+}
+
+export function fromOcrResponse(res: OcrResponse): ScanResult {
+  const [first, ...rest] = res.suggested_medicines;
+  if (!first) return { status: 'no_results' };
+  const name = `${first.fda_brandname || first.fda_genericname}${first.fda_dosage_strength ? ` ${first.fda_dosage_strength}` : ''}`;
+  if (rest.length === 0 && first.confidence_percentage >= 95) {
+    return {
+      status: 'verified',
+      confidence: first.confidence_percentage,
+      medicine: { name, category: first.fda_genericname, form: first.fda_dosage_form ?? '' },
+      info: [
+        { icon: Assets.icons.manufacturer, label: 'Manufacturer', value: first.fda_manufacturer ?? 'Unknown' },
+        { icon: Assets.icons.expiryDate, label: 'Expiry Date', value: res.entities.expiry_date ?? 'Not detected' },
+        { icon: Assets.icons.medicineType, label: 'Medicine Type', value: first.fda_dosage_form ?? 'Unknown' },
+        { icon: Assets.icons.strength, label: 'Strength', value: first.fda_dosage_strength ?? 'Unknown' },
+      ],
+    };
+  }
+  return {
+    status: 'needs_verification',
+    confidence: first.confidence_percentage,
+    matches: [first, ...rest].slice(0, 4).map((medicine) => ({
+      id: medicine.fda_approval_id,
+      fdaId: medicine.fda_id,
+      name: `${medicine.fda_brandname || medicine.fda_genericname}${medicine.fda_dosage_strength ? ` ${medicine.fda_dosage_strength}` : ''}`,
+      category: medicine.fda_genericname,
+      form: medicine.fda_dosage_form ?? '',
+      strength: medicine.fda_dosage_strength ?? '',
+      similarity: medicine.confidence_percentage,
+    })),
+  };
 }
 
 // The verified mock is "Heparin Leo 5,000 IU/mL" (FDA reg. BR-1005, first entry of response_2_multiple.json).
