@@ -21,6 +21,7 @@ back-end/app/api/responses
 *.pyo
 .pytest_cache/
 .venv/
+.env
 
 # JavaScript / Expo local files
 front-end/node_modules/
